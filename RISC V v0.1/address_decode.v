@@ -17,7 +17,7 @@ module AddressDecoder(
   output [31:0] io_write_value,
   
   output        is_io
-);
+  );
     
   wire        is_mem;
 

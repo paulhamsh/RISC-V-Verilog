@@ -14,8 +14,8 @@ module test_RISC32;
 // PROG_STEPPED will run each line and check the output (assumes test program 1)
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
-//`define PROG_BASIC 
-`define PROG_STEPPED
+`define PROG_BASIC 
+//`define PROG_STEPPED
 //`define PROG_INDIV
 
 `ifdef PROG_BASIC
@@ -69,8 +69,8 @@ module test_RISC32;
       $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       clk = 1;
       #5;
-      $display("\tmem[2]:   %2h", uut.datapath.dm.memory[2]);
-      if (uut.datapath.dm.memory[2] != 32'h0003) $error("ST failure");  
+      $display("\tmem[2]:   %2h", uut.datapath.dm.memory[1]);
+      if (uut.datapath.dm.memory[1] != 32'h0002) $error("ST failure");  
       
       clk = 0;
       #5;   
@@ -182,14 +182,14 @@ module test_RISC32;
        clk = 0;
        #5;     
        uut.datapath.pc_current = 0;
-       uut.datapath.im.memory[0] <= 32'b0000_010_000_000000; 
-       uut.datapath.dm.memory[1] <= 32'h0000_7f7f;                    // Mem[1] = 7f7f
-       uut.datapath.reg_file.reg_array[2] <= 32'h0001;           // R2 = 1
+       uut.datapath.im.memory[0] <= 32'b00000000_00000000_0000_010_000_000000; 
+       uut.datapath.dm.memory[1] <= 32'h0000_7f7f;               // Mem[1] = 7f7f
+       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
        clk = 1;
        #5;
-       $display("\tr0:   %2h", uut.datapath.reg_file.reg_array[0]);
+       $display("\tr0:   %08h", uut.datapath.reg_file.reg_array[0]);
        if (uut.datapath.reg_file.reg_array[0] != 32'h0000_7f7f) $error("LD failure"); else $display("Success");
  
 
@@ -197,7 +197,7 @@ module test_RISC32;
        clk = 0;
        #5;
        uut.datapath.pc_current = 0;
-       uut.datapath.im.memory[0] <= 32'b0010_001_010_011_000; 
+       uut.datapath.im.memory[0] <= 32'b00000000_00000000_0010_001_010_011_000; 
        uut.datapath.reg_file.reg_array[1] <= 32'h0001;           // R1 = 0001
        uut.datapath.reg_file.reg_array[2] <= 32'h0fff;           // R2 = 0fff
        uut.datapath.reg_file.reg_array[3] <= 32'h2222;           // R3 = 2222
@@ -205,7 +205,7 @@ module test_RISC32;
        $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
        clk = 1;
        #5;
-       $display("\tr3:   %2h", uut.datapath.reg_file.reg_array[3]);
+       $display("\tr3:   %08h", uut.datapath.reg_file.reg_array[3]);
        if (uut.datapath.reg_file.reg_array[3] != 32'h1000) $error("ADD failure"); else $display("Success");
  
 
@@ -213,29 +213,58 @@ module test_RISC32;
        clk = 0;
        #5;
        uut.datapath.pc_current = 0;
-       uut.datapath.im.memory[0] <= 32'b1110_001_0_01010101; 
+       uut.datapath.im.memory[0] <= 32'b00000000_00000000_1110_001_0_01010101; 
        uut.datapath.reg_file.reg_array[1] <= 32'h0000_ffff;           // R1 = 0001
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
        clk = 1;
        #5;
-       $display("\tr1:   %2h", uut.datapath.reg_file.reg_array[1]);
+       $display("\tr1:   %08h", uut.datapath.reg_file.reg_array[1]);
        if (uut.datapath.reg_file.reg_array[1] != 32'h0000_55ff) $error("LUI failure"); else $display("Success");
 
 
-       // Test 2 - LLI R1, 10101010
+       // Test 4 - LLI R1, 10101010
        clk = 0;
        #5;
        uut.datapath.pc_current = 0;
-       uut.datapath.im.memory[0] <= 32'b1111_001_0_10101010; 
+       uut.datapath.im.memory[0] <= 32'b00000000_00000000_1111_001_0_10101010; 
        uut.datapath.reg_file.reg_array[1] <= 32'hffff;           // R1 = 0001
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
        clk = 1;
        #5;
-       $display("\tr1:   %2h", uut.datapath.reg_file.reg_array[1]);
+       $display("\tr1:   %08h", uut.datapath.reg_file.reg_array[1]);
        if (uut.datapath.reg_file.reg_array[1] != 32'hffaa) $error("LLI failure"); else $display("Success");
 
+
+       // Test 5 - memory wrap
+       clk = 0;
+       #5;
+       uut.datapath.pc_current = 0;
+       uut.datapath.im.memory[0]  <= 32'b00000000_00000000_0000_010_000_000000; 
+       uut.datapath.dm.memory[0]  <= 32'hf7f7_7f7f;               // Mem[4]   = f7f7_7f7f  - byte address 4, even though index 1
+       uut.datapath.dm.memory[31] <= 32'h8888_8888;               // Mem[124] = 8888_8888  - byte address 124, even though index 31
+       uut.datapath.reg_file.reg_array[2] <= 32'd128;             // R2 = 128 (should wrap to 0)
+       #10;
+       $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
+       clk = 1;
+       #5;
+       $display("\tr0:   %08h", uut.datapath.reg_file.reg_array[0]);
+       if (uut.datapath.reg_file.reg_array[0] != 32'hf7f7_7f7f) $error("LD failure"); else $display("Success");
+
+       clk = 0;
+       #5;
+       uut.datapath.pc_current = 0;
+       uut.datapath.im.memory[0]  <= 32'b00000000_00000000_0000_010_000_000000; 
+       uut.datapath.dm.memory[0]  <= 32'hf7f7_7f7f;               // Mem[4]   = f7f7_7f7f  - byte address 4, even though index 1
+       uut.datapath.dm.memory[31] <= 32'h8888_8888;               // Mem[124] = 8888_8888  - byte address 124, even though index 31
+       uut.datapath.reg_file.reg_array[2] <= 32'd124;             // R2 = 128 (should wrap to 0)
+       #10;
+       $display("PC:  %3d  Instruction: %32b   Opcode: %4b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
+       clk = 1;
+       #5;
+       $display("\tr0:   %08h", uut.datapath.reg_file.reg_array[0]);
+       if (uut.datapath.reg_file.reg_array[0] != 32'h8888_8888) $error("LD failure"); else $display("Success");
 
 
        #20;

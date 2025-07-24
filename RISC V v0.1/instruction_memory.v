@@ -14,7 +14,7 @@ module InstructionMemory(
   
   initial
     begin
-      $readmemb("test_prog4.mem", memory);
+      $readmemb("test_prog2.mem", memory);
     end
   
   assign instruction = memory[rom_addr]; 
