@@ -1,0 +1,44 @@
+      // comment line
+      start:
+      another_label:
+      another:
+      // with comment
+0         ld  r0, r2(0)            
+4         ld  r1, r2[1]   
+      jump_point:
+      here:
+8         add r2, r0, r1           
+12        jmp here                 
+16        st  r2, r1 + 0            
+20        sub r2, r0, r1           
+24        inv r2  r0               
+28        lsl r2  r0  r1           
+32        lsr r2, r0, r1           
+36        and r2, r0, r1           
+40        or  r2, r0, r1           
+44        slt r2, r0, r1           
+48        add r0, r0, r0           
+52        beq r0, r2, 4            // {jump 60}
+56        bne r0, r2, 0            // {jump 60}
+60        jmp another              
+      cont:
+64        ld  r1, r2(5)            // comment
+68        st  r3, r5(3)            // this is
+72        add r4, r2, r1           // a
+      interim:
+76        sub r7, r3, r0           // comment
+80        lsl r6, r4, r1           
+84        lsr r5, r5, r2           
+88        slt r4, r6, r3           
+92        and r3, r7, r4           
+96        or  r2, r5, r6           
+100       inv r1, r2               
+104       beq r1, r2, another
+108       beq r1, r2, -8      
+112       bne r1, r2, end   
+116       lui r5, r5, 103
+120       lli r5, r5, 24       
+124       jmp interim              
+      end:
+128       jmp end                  
+132       jmp 4 
