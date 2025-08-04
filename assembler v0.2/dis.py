@@ -24,10 +24,11 @@
  
 # // comment
 # // [start:0]
-# 0000_0000_0000_0000_0000_010_000_000000
-# 0000_0000_0000_0000_0000_010_000_000000  // with comment
-# 12    0000_0000_0000_0000_0000_010_000_000000
-# 12    0000_0000_0000_0000_0000_010_000_000000  // with comment
+# // [start:0]
+#        000000_000_000_00_010_00000_000_000_0000 
+#        000100_000_000_00_010_00000_001_000_0000 // with comment
+# 12     000000_000_001_00_000_00000_010_000_0010
+# 12     000000_000_001_00_000_00000_010_000_0010 // with comment
 
 # Instruction formats
 
@@ -38,28 +39,36 @@
 # beq    rs1, rs2, offset6
 # bne    rs1, rs2, offset6
 # jmp    offset12
-# lui    rd,  imm8
-# lli    rd,  imm8
+# lui    rd,  rs1, imm8
+# lli    rd,  rs1, imm8
 
-# ld   0000  rs1  rd   -offset6-
-# st   0001  rs1  rs2  -offset6-
-# add  0010  rs1  rs2  rd    000
-# inv  0100  rs1  000  rd    000
-# beq  1011  rs1  rs2  -offset6-
-# bne  1100  rs1  rs2  -offset6-
-# jmp  1101  ------offset12-----
-# lui  1110  rd   0 ----imm8----
-# lli  1111  rd   0 ----imm8----
+# Machine code
 
-# ld   0000  regB regA --value--
-# st   0001  regB regA --value--
-# add  0010  regB regC regA  000	
-# inv  0100  regB  000 regA  000
-# beq  1011  regA regB --value--
-# bne  1100  regA regB --value--
-# jmp  1101  -----offset 12-----
-# lui  1110  regA  0 ---imm8----	
-# lli  1111  regA  0 ---imm8----
+# ld   -off6- xxx rs2 xx rs1 xxxxx rd- xxx 0000
+# st   -off6- xxx rs2 xx rs1 xxxxx xxx xxx 0001  
+# add  xxxxxx xxx rs2 xx rs1 xxxxx rd- xxx 0010  
+# inv  xxxxxx xxx xxx xx rs1 xxxxx rd- xxx 0100
+# beq  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1011  
+# bne  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1100  
+# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
+# lui  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1110 
+# lli  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1111
+
+# As written
+
+# cmd regA, regB, regC, value/offset12/imm8
+# add r1,   r2,   r3
+# ld  r1,   r2          (-12)
+
+# ld   -off6- xxx xxx xx rgB xxxxx rgA xxx 0000
+# st   -off6- xxx rgA xx rgB xxxxx xxx xxx 0001  
+# add  xxxxxx xxx rgC xx rgB xxxxx rgA xxx 0010  
+# inv  xxxxxx xxx xxx xx rgB xxxxx rgA xxx 0100
+# beq  -off6- xxx rgB xx rgA xxxxx xxx xxx 1011  
+# bne  -off6- xxx rgB xx rgA xxxxx xxx xxx 1100  
+# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
+# lui  --imm8-- x xxx xx rgB xxxxx rgA xxx 1110 
+# lli  --imm8-- x xxx xx rgB xxxxx rgA xxx 1111
 
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
@@ -114,14 +123,27 @@ def disassemble(code):
         # otherwise process the line for disassembly    
         elif line != "":
             value = int(line, 2)
-            opcode = (value & 0b1111_000_000_000_000) >> 12
-            r1     = (value & 0b0000_111_000_000_000) >> 9
-            r2     = (value & 0b0000_000_111_000_000) >> 6
-            r3     = (value & 0b0000_000_000_111_000) >> 3
-            off6   = (value & 0b0000_000_000_111_111)
-            off12  = (value & 0b0000_111_111_111_111)
-            imm8   = (value & 0b0000_0000_1111_1111)
 
+# ld   -off6- xxx xxx xx rgB xxxxx rgA xxx 0000
+# st   -off6- xxx rgA xx rgB xxxxx xxx xxx 0001  
+# add  xxxxxx xxx rgC xx rgB xxxxx rgA xxx 0010  
+# inv  xxxxxx xxx xxx xx rgB xxxxx rgA xxx 0100
+# beq  -off6- xxx rgB xx rgA xxxxx xxx xxx 1011  
+# bne  -off6- xxx rgB xx rgA xxxxx xxx xxx 1100  
+# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
+# lui  --imm8-- x xxx xx rgB xxxxx rgA xxx 1110 
+# lli  --imm8-- x xxx xx rgB xxxxx rgA xxx 1111
+
+            opcode = (value & 0b000000_000_000_00_000_00000_000_000_1111)
+            rs1    = (value & 0b000000_000_000_00_111_00000_000_000_0000) >> 15
+            rs2    = (value & 0b000000_000_111_00_000_00000_000_000_0000) >> 20
+            rd     = (value & 0b000000_000_000_00_000_00000_111_000_0000) >> 7
+            off6   = (value & 0b111111_000_000_00_000_00000_000_000_0000) >> 26
+            off12  = (value & 0b111111_111_111_00_000_00000_000_000_0000) >> 20
+            imm8   = (value & 0b111111_11_0_000_00_000_00000_000_000_0000) >> 24
+
+
+           
             # fix signed offset
             if off6 > 31:
                 signed_offset = off6 - 64
@@ -132,9 +154,12 @@ def disassemble(code):
             assembly = f"{opcodes[opcode]:3s} "
 
             # and process all the optional registers and value
-            # ld and st
-            if   opcode <= 0b0001:
-                assembly += f"r{r2:d}, r{r1:d}({signed_offset:d})"
+            # ld
+            if   opcode == 0b0000:
+                assembly += f"r{rd:d}, r{rs1:d}({signed_offset:d})"
+            # st
+            elif opcode == 0b0001:
+                assembly += f"r{rs2:d}, r{rs1:d}({signed_offset:d})"
             # jmp
             elif opcode == 0b1101:
                 jump_dest = off12 * 4
@@ -144,7 +169,7 @@ def disassemble(code):
                     assembly += f"{jump_dest:d}"
             # beq and bne
             elif opcode == 0b1100 or opcode == 0b1011:
-                assembly += f"r{r1:d}, r{r2:d}, "
+                assembly += f"r{rs1:d}, r{rs2:d}, "
                 word_offset = signed_offset * 4
                 jump_dest = line_number + 4 + word_offset
                 if label_names.get(jump_dest):
@@ -157,13 +182,13 @@ def disassemble(code):
                     comment += f" {{jump {jump_dest:d}}}"
             # inv
             elif opcode == 0b0100:
-                assembly += f"r{r3:d}, r{r1:d}"
+                assembly += f"r{rd:d}, r{rs1:d}"
             # lli and lui
             elif opcode == 0b1110 or opcode == 0b1111:
-                assembly += f"r{r1:d}, {imm8:d}"
+                assembly += f"r{rd:d}, r{rs1:d}, {imm8:d}"
             # other arithmetic instructions
             else:
-                assembly += f"r{r3:d}, r{r1:d}, r{r2:d}"
+                assembly += f"r{rd:d}, r{rs1:d}, r{rs2:d}"
 
             # create the output with the assembly plus a comment
             # (which could be empty)
