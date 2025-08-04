@@ -122,16 +122,15 @@ def tokenise(txt) :
 # add r1,   r2,   r3
 # ld  r1,   r2          (-12)
 
-# ld   0000  regB regA --value--
-# st   0001  regB regA --value--
-# add  0010  regB regC regA  000	
-# inv  0100  regB  000 regA  000
-# beq  1011  regA regB --value--
-# bne  1100  regA regB --value--
-# jmp  1101  -----offset12------
-# lui  1110  regA regB --imm8---	
-# lli  1111  regA regB --imm8---
-	
+# ld   -off6- xxx xxx xx rgB xxxxx rgA xxx 0000
+# st   -off6- xxx rgA xx rgB xxxxx xxx xxx 0001  
+# add  xxxxxx xxx rgC xx rgB xxxxx rgA xxx 0010  
+# inv  xxxxxx xxx xxx xx rgB xxxxx rgA xxx 0100
+# beq  -off6- xxx rgB xx rgA xxxxx xxx xxx 1011  
+# bne  -off6- xxx rgB xx rgA xxxxx xxx xxx 1100  
+# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
+# lui  --imm8-- x xxx xx rgB xxxxx rgA xxx 1110 
+# lli  --imm8-- x xxx xx rgB xxxxx rgA xxx 1111
 
 def assemble(code):
     result = []
