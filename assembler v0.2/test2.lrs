@@ -1,6 +1,6 @@
 // comment line
 start:
-0         ld  r0, r2(0)            
-4         ld  r1, r2(1)            
-8         add r2, r0, r1           
-12        st  r2, r1(0)            
+0         ld  x3, x2(0)            
+4         ld  x1, x2(1)            
+8         add x2, x3, x1           
+12        st  x2, x1(0)            

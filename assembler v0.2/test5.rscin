@@ -1,0 +1,15 @@
+          ld  x3, x2(0)            // 00 load x0 <- Mem(x2 + 0)                  ALU_op = 000  x0 = 1 Mem[0 + 0]
+          ld  x1, x2(4)            // 01 load x1 <- Mem(x2 + 4)                  ALU_op = 000  x1 = 2 Mem[0 + 4]
+          add x2, x3, x1           // 02 Add x2 <- x0 + x1                       ALU_op = 000  x2 = 3
+          st  x2, x1(0)            // 03 Store Mem(x1 + 0) <- x2                 ALU_op = 000  Mem[4 + 0] = 3
+          sub x2, x3, x1           // 04 sub x2 <- x0 - x1                       ALU_op = 001  x2 = 1111_1111_1111_1111__1111_1111_1111_1111 (-1)
+          inv x2, x3               // 05 invert x2 <- !x0                        ALU_op = 100  x2 = 1111111111111110
+          lsl x2, x3, x1           // 06 logical shift left x2 <- x0<<x1         ALU_op = 011  x2 = 0000000000000100
+          lsr x2, x3, x1           // 07 logical shift xight x2 <- x0>>x1        ALU_op = 100  x2 = 0000000000000000
+          and x2, x3, x1           // 08 AND x2<- x0 AND x1                      ALU_op = 101  x2 = 0000000000000000
+          or  x2, x3, x1           // 09 OR x2<- x0 OR x1                        ALU_op = 110  x2 = 0000000000000011
+          slt x2, x3, x1           // 0a SLT x2 <- 1 if x0 < x1                  ALU_op = 111  x2 = 0000000000000001
+          add x3, x3, x3           // 0b Add x0 <- x0 + x0                       ALU_op = 000  x0 = 0000000000000010
+          beq x3, x2, 4            // 0c BEQ branch to jump if x0==x2, PCnew= PC+2+offset<<1 = 28 => offset = 1  will not branch {jump 56}
+          bne x3, x2, 0            // 0d BNE branch to jump if x0!=x2, PCnew= PC+2+offset<<1 = 28 => offset = 0  will branch {jump 56}
+          jmp 0                    // 0e J jump to the beginning address

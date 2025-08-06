@@ -21,13 +21,18 @@
 #      // standalone comment
 # end: jmp end
 
-
+# NOTE - any jump or banch offsets / immediate values are the actual number of bytes,
+#        rather than the number of instructions
 
 
 import re
 
 
 # Check for leading negative sign - no need to check for plus sign as that is removed as whitespace
+
+def is_uint(s):
+    return s.isnumeric()
+
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
 
@@ -37,8 +42,8 @@ def tokenise(txt) :
     # make the left bracket and + into a space - for split()
     # and remove the right brackets
     # so:
-    # ld r0, r2(0) => ld r0 r2 0
-    # ld r0, r2+10 => ld r0 r2 10
+    # ld x0, x2(0) => ld x0 x2 0
+    # ld x0, x2+10 => ld x0 x2 10
     
     txt = txt.replace("[", " ")
     txt = txt.replace("]","")
@@ -79,11 +84,11 @@ def tokenise(txt) :
                 label = c[:-1]
             elif cmd == None:
                 cmd = c
-            elif regA == None and c[0] == "r" and c[1].isdigit():
+            elif regA == None and c[0] == "x" and is_uint(c[1:]):
                 regA = int(c[1])
-            elif regB == None and c[0] == "r" and c[1].isdigit():
+            elif regB == None and c[0] == "x" and is_uint(c[1:]):
                 regB = int(c[1])
-            elif regC == None and c[0] == "r" and c[1].isdigit():
+            elif regC == None and c[0] == "x" and is_uint(c[1:]):
                 regC = int(c[1])
             elif value == None  and is_int(c):
                 value = int(c)
@@ -106,15 +111,15 @@ def tokenise(txt) :
 
 # Machine code
 
-# ld   -off6- xxx rs2 xx rs1 xxxxx rd- xxx 0000
-# st   -off6- xxx rs2 xx rs1 xxxxx xxx xxx 0001  
-# add  xxxxxx xxx rs2 xx rs1 xxxxx rd- xxx 0010  
-# inv  xxxxxx xxx xxx xx rs1 xxxxx rd- xxx 0100
-# beq  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1011  
-# bne  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1100  
-# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
-# lui  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1110 
-# lli  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1111
+# ld   -off6- x --rs2 --rs1 xxx --rd- xxx 0000
+# st   -off6- x --rs2 --rs1 xxx xxxxx xxx 0001  
+# add  xxxxxx x --rs2 --rs1 xxx --rd- xxx 0010  
+# inv  xxxxxx x --xxx --rs1 xxx --rd- xxx 0100
+# beq  -off6- x --rs2 --rs1 xxx xxxxx xxx 1011  
+# bne  -off6- x --rs2 --rs1 xxx xxxxx xxx 1100  
+# jmp   ----off12---  xxxxx xxx xxxxx xxx 1101  
+# lui  --imm8-- x xxx --rs1 xxx --rd- xxx 1110 
+# lli  --imm8-- x xxx --rs1 xxx --rd- xxx 1111
 
 # As written
 
@@ -122,15 +127,15 @@ def tokenise(txt) :
 # add r1,   r2,   r3
 # ld  r1,   r2          (-12)
 
-# ld   -off6- xxx xxx xx rgB xxxxx rgA xxx 0000
-# st   -off6- xxx rgA xx rgB xxxxx xxx xxx 0001  
-# add  xxxxxx xxx rgC xx rgB xxxxx rgA xxx 0010  
-# inv  xxxxxx xxx xxx xx rgB xxxxx rgA xxx 0100
-# beq  -off6- xxx rgB xx rgA xxxxx xxx xxx 1011  
-# bne  -off6- xxx rgB xx rgA xxxxx xxx xxx 1100  
-# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
-# lui  --imm8-- x xxx xx rgB xxxxx rgA xxx 1110 
-# lli  --imm8-- x xxx xx rgB xxxxx rgA xxx 1111
+# ld   -off6- x xxxxx --rgB xxx --rgA xxx 0000
+# st   -off6- x --rgA --rgB xxxxx xxx xxx 0001  
+# add  xxxxxx x --rgC --rgB xxx --rgA xxx 0010  
+# inv  xxxxxx x xxxxx --rgB xxx --rgA xxx 0100
+# beq  -off6- x --rgB --rgA xxxxx xxx xxx 1011  
+# bne  -off6- x --rgB --rgA xxxxx xxx xxx 1100  
+# jmp   ----off12---  xxxxx xxxxx xxx xxx 1101  
+# lui  --imm8-- x xxx --rgB xxx --rgA xxx 1110 
+# lli  --imm8-- x xxx --rgB xxx --rgA xxx 1111
 
 def assemble(code):
     result = []
@@ -174,39 +179,30 @@ def assemble(code):
             
             if branch_value < 0:
                 branch_value = 64 + branch_value
-                 
+
+
             if signed_value < 0:
                 signed_value = 64 + signed_value
-
-# ld   -off6- xxx xxx xx rs1 xxxxx rd- xxx 0000
-# st   -off6- xxx rs2 xx rs1 xxxxx xxx xxx 0001  
-# add  xxxxxx xxx rs2 xx rs1 xxxxx rd- xxx 0010  
-# inv  xxxxxx xxx xxx xx rs1 xxxxx rd- xxx 0100
-# beq  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1011  
-# bne  -off6- xxx rs2 xx rs1 xxxxx xxx xxx 1100  
-# jmp   ----off12---  xx xxx xxxxx xxx xxx 1101  
-# lui  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1110 
-# lli  --imm8-- x xxx xx rs1 xxxxx rd- xxx 1111
             
         if cmd:
             if   cmd == "ld":
-                code = f"{signed_value:06b}_000_000_00_{regB:03b}_00000_{regA:03b}_000_0000"
+                code = f"{signed_value:06b}_0_00000_{regB:05b}_000_{regA:05b}_0000000"
             elif cmd == "st":
-                code = f"{signed_value:06b}_000_{regA:03b}_00_{regB:03b}_00000_000_000_0001"
+                code = f"{signed_value:06b}_0_{regA:05b}_{regB:05b}_000_00000_0000001"
             elif cmd == "beq":
-                code = f"{branch_value:06b}_000_{regB:03b}_00_{regA:03b}_00000_000_000_1011"
+                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0001011"
             elif cmd == "bne":
-                code = f"{branch_value:06b}_000_{regB:03b}_00_{regA:03b}_00000_000_000_1100"
+                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0001100"
             elif cmd == "jmp":		
-                code = f"{jump_value:012b}_00_000_00000_000_000_1101"
+                code = f"  {jump_value:012b}_00000_000_00000_0001101"
             elif cmd == "inv":		
-                code = f"000000_000_00_000_{regB:03b}_00000_{regA:03b}_000_0100"
+                code = f" 000000_000000_{regB:05b}_000_{regA:05b}_0000100"
             elif cmd == "lui":		
-                code = f"{immediate:08b}_0_000_00_{regB:03b}_00000_{regA:03b}_000_1110"
+                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0001110"
             elif cmd == "lli":		
-                code = f"{immediate:08b}_0_000_00_{regB:03b}_00000_{regA:03b}_000_1111"
+                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0001111"
             elif cmd in arith_cmds:		
-                code = f"000000_000_{regC:03b}_00_{regB:03b}_00000_{regA:03b}_000_{arith_cmds[cmd]:04b}" 
+                code = f"000000_0_{regC:05b}_{regB:05b}_000_{regA:05b}_000{arith_cmds[cmd]:04b}" 
                 
         result.append((line_number, label, code, comment))
         if code:

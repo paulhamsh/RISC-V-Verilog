@@ -3,37 +3,37 @@
 start:
 another_label:
    another:   // with comment
-ld  r0, r2(0)            
-    ld  r1, r2(1)  
+ld  x3, x2(0)            
+    ld  x1, x2(1)  
 jump_point:  
-here:  add r2, r0, r1  
+here:  add x2, x3, x1  
 jmp here         
-st  r2, r1(0)            
-sub r2, r0, r1           
-inv r2, r0               
-lsl r2, r0, r1           
-lsr r2, r0, r1           
-and r2, r0, r1           
-or  r2, r0, r1           
-slt r2, r0, r1           
-add r0, r0, r0           
-beq r0, r2, 4          
-bne r0, r2, 0          
+st  x2, x1(0)            
+sub x2, x3, x1           
+inv x2, x3               
+lsl x2, x3, x1           
+lsr x2, x3, x1           
+and x2, x3, x1           
+or  x2, x3, x1           
+slt x2, x3, x1           
+add x3, x3, x3           
+beq x3, x2, 4          
+bne x3, x2, 0          
 jmp          start          
 cont:
-ld  r1, r2(5)            // comment
-st  r3, r5(3)            // this is
-add r4, r2, r1           // a
+ld  x1, x2(5)            // comment
+st  x3, x5(3)            // this is
+add x4, x2, x1           // a
 interim:
-sub r7, r3, r0           // comment
-lsl r6, r4, r1           
-lsr r5, r5, r2           
-slt r4, r6, r3           
-and r3, r7, r4           
-or  r2, r5, r6           
-inv r1, r2               
-beq r1, r2, start         
-bne r1, r2, end            
+sub x7, x3, x0           // comment
+lsl x6, x4, x1           
+lsr x5, x5, x2           
+slt x4, x6, x3           
+and x3, x7, x4           
+or  x2, x5, x6           
+inv x1, x2               
+beq x1, x2, start         
+bne x1, x2, end            
 jmp         interim       
 end:
 jmp         end        
