@@ -11,7 +11,7 @@ module ControlUnit(
   always @(*)
   begin
     case(opcode) 
-      7'b0000000:  // LD
+      7'b0000011:  // LD
         begin
           alu_src       = 2'b01;
           mem_to_reg    = 1'b1;
@@ -23,7 +23,7 @@ module ControlUnit(
           alu_op        = 4'b0000;  // add
           jump          = 1'b0;   
         end
-      7'b0000001:  // ST
+      7'b0000111:  // ST
         begin
           alu_src       = 2'b01;
           mem_to_reg    = 1'b0;
@@ -35,7 +35,7 @@ module ControlUnit(
           alu_op        = 4'b0000;  // add
           jump          = 1'b0;   
         end
-      7'b0000010:  // ADD
+      7'b0001011:  // ADD
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -47,7 +47,7 @@ module ControlUnit(
           alu_op         = 4'b0000;  // add
           jump           = 1'b0;   
         end
-      7'b0000011:  // SUB
+      7'b0001111:  // SUB
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -59,7 +59,7 @@ module ControlUnit(
           alu_op         = 4'b0001;  // sub
           jump           = 1'b0;   
         end
-      7'b0000100:  // INV
+      7'b0010011:  // INV
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -71,7 +71,7 @@ module ControlUnit(
           alu_op         = 4'b0010; // inv
           jump           = 1'b0;   
         end
-      7'b0000101:  // LSL
+      7'b0010111:  // LSL
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -83,7 +83,7 @@ module ControlUnit(
           alu_op         = 4'b0011; // lsl
           jump           = 1'b0;   
          end
-      7'b0000110:  // LSR
+      7'b0011011:  // LSR
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -95,7 +95,7 @@ module ControlUnit(
           alu_op         = 4'b0100; // lsr
           jump           = 1'b0;   
         end
-      7'b0000111:  // AND
+      7'b0011111:  // AND
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -107,7 +107,7 @@ module ControlUnit(
           alu_op         = 4'b0101; // and
           jump           = 1'b0;   
         end
-      7'b0001000:  // OR
+      7'b0100011:  // OR
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -119,7 +119,7 @@ module ControlUnit(
           alu_op         = 4'b0110; // or
           jump           = 1'b0;   
         end
-      7'b0001001:  // SLT
+      7'b0100111:  // SLT
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -131,7 +131,7 @@ module ControlUnit(
           alu_op         = 4'b0111; // slt
           jump           = 1'b0;   
         end
-      7'b0001011:  // BEQ
+      7'b0101111:  // BEQ
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -143,7 +143,7 @@ module ControlUnit(
           alu_op         = 4'b0001; // sub
           jump           = 1'b0;   
         end
-      7'b0001100:  // BNE
+      7'b0110011:  // BNE
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -155,7 +155,7 @@ module ControlUnit(
           alu_op         = 4'b0001; // sub
           jump           = 1'b0;   
         end
-      7'b0001101:  // JMP
+      7'b0110111:  // JMP
         begin
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
@@ -167,8 +167,7 @@ module ControlUnit(
           alu_op         = 4'b0000; // add
           jump           = 1'b1;   
         end   
-
-      7'b0001110:  // LUI
+      7'b0111011:  // LUI
         begin
           alu_src        = 2'b10;   // 8 bit immediate
           mem_to_reg     = 1'b0;
@@ -180,8 +179,7 @@ module ControlUnit(
           alu_op         = 4'b1000; // lui
           jump           = 1'b0;   
         end   
-        
-      7'b0001111:  // LLI
+      7'b0111111:  // LLI
         begin
           alu_src        = 2'b10;   // 8 bit immediate
           mem_to_reg     = 1'b0;
@@ -193,10 +191,6 @@ module ControlUnit(
           alu_op         = 4'b1001; // lli
           jump           = 1'b0;   
         end   
-
-
-
-
       default: begin // ADD
           //reg_dst        = 2'b01;
           alu_src        = 2'b00;
