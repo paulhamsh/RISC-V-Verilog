@@ -6,9 +6,9 @@ module DatapathUnit(
   input         jump, beq, bne, 
   input         data_read_en, data_write_en, 
   input         reg_write_en, mem_to_reg, 
-  input  [1:0]  alu_src, reg_dst,
+  input  [1:0]  alu_src,
   input  [3:0]  alu_op,
-  output [3:0]  opcode,
+  output [6:0]  opcode,
  
   output [31:0] io_address,
   output [31:0] io_write_value,
@@ -69,7 +69,7 @@ module DatapathUnit(
   end
 
   // Output the opcode for control unit 
-  assign opcode = instr[3:0];
+  assign opcode = instr[6:0];
 
   //// 
   //// Instruction memory
@@ -87,19 +87,7 @@ module DatapathUnit(
   //// Registers
   ////
     
-  // RD_MUX    
-  // Destination register selection - 8:6, 5:3 or 11:9
-
-  Mux4_3 read_mux(
-    .sel(reg_dst),
-    .out(rd),
-    .in0(instr[9:7]),    // reg_dst == 0
-    .in1(instr[9:7]),    // reg_dst == 1
-    //.in2(instr[17:15]),  // reg_dst == 2  for LUI, rd = rs1
-    .in2(instr[9:7]),    // reg_dst == 2  for LUI, rd = rs1
-    .in3(instr[9:7]));   // invalid option
-    
-  
+ 
   // Write back the destination register value - either ALU output
   // MEM_READ_MUX   
 
@@ -117,10 +105,11 @@ module DatapathUnit(
     .in0(alu_out), 
     .in1(data_read_value));
 
-  // Source register allocations
+  // Register allocations
   assign rs1 = instr[17:15];
   assign rs2 = instr[22:20];
-
+  assign rd  = instr[9:7];
+  
   RegisterUnit reg_file
   (
     .clk(clk),

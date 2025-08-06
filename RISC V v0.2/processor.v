@@ -13,11 +13,11 @@ module Risc32(
   wire       cu_jump, cu_bne, cu_beq; 
   wire       cu_data_read_en, cu_data_write_en;
   wire       cu_mem_to_reg, cu_reg_write_en;
-  wire [1:0] cu_alu_src, cu_reg_dst; 
+  wire [1:0] cu_alu_src; 
   wire [3:0] cu_alu_op;
   
   // Opcode from datapath to control unit
-  wire [3:0] opcode;
+  wire [6:0] opcode;
   
   // Datapath
   DatapathUnit datapath
@@ -28,7 +28,6 @@ module Risc32(
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
     .alu_src(cu_alu_src),
-    .reg_dst(cu_reg_dst),
     .mem_to_reg(cu_mem_to_reg),
     .reg_write_en(cu_reg_write_en),
     .bne(cu_bne),
@@ -46,7 +45,6 @@ module Risc32(
   ControlUnit control
   (
     .opcode(opcode),
-    .reg_dst(cu_reg_dst),
     .mem_to_reg(cu_mem_to_reg),
     .alu_op(cu_alu_op),
     .jump(cu_jump),

@@ -15,8 +15,8 @@ module test_RISC32;
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
 //`define PROG_BASIC 
-//`define PROG_STEPPED
-`define PROG_INDIV
+`define PROG_STEPPED
+//`define PROG_INDIV
 
 `ifdef PROG_BASIC
   initial 
@@ -46,7 +46,7 @@ module test_RISC32;
       clk = 1;
       #5;
       $display("\tr0:   %8h", uut.datapath.reg_file.reg_array[0]);
-      if (uut.datapath.reg_file.reg_array[0] != 32'h0001) $error("LD failure");
+      if (uut.datapath.reg_file.reg_array[3] != 32'h0001) $error("LD failure");
       
       clk = 0;
       #5;        
@@ -134,7 +134,7 @@ module test_RISC32;
       clk = 1;
       #5;
       $display("\tr0:   %8h", uut.datapath.reg_file.reg_array[0]);
-      if (uut.datapath.reg_file.reg_array[0] != 32'h0002) $error("ADD failure");  
+      if (uut.datapath.reg_file.reg_array[3] != 32'h0002) $error("ADD failure");  
       
       clk = 0;
       #5;   

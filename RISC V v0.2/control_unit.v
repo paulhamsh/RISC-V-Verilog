@@ -1,19 +1,18 @@
 `timescale 1ns / 1ps
 
 module ControlUnit(
-      input [3:0] opcode,
+      input [6:0] opcode,
       output reg [3:0] alu_op,
       output reg jump, beq, bne, 
       output reg data_read_en, data_write_en, mem_to_reg, reg_write_en,
-      output reg [1:0] alu_src, reg_dst
+      output reg [1:0] alu_src//, reg_dst
       );
 
   always @(*)
   begin
     case(opcode) 
-      4'b0000:  // LD
+      7'b0000000:  // LD
         begin
-          reg_dst       = 2'b00;      
           alu_src       = 2'b01;
           mem_to_reg    = 1'b1;
           reg_write_en  = 1'b1;
@@ -24,9 +23,8 @@ module ControlUnit(
           alu_op        = 4'b0000;  // add
           jump          = 1'b0;   
         end
-      4'b0001:  // ST
+      7'b0000001:  // ST
         begin
-          reg_dst       = 2'b00;
           alu_src       = 2'b01;
           mem_to_reg    = 1'b0;
           reg_write_en  = 1'b0;
@@ -37,9 +35,8 @@ module ControlUnit(
           alu_op        = 4'b0000;  // add
           jump          = 1'b0;   
         end
-      4'b0010:  // ADD
+      7'b0000010:  // ADD
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -50,9 +47,8 @@ module ControlUnit(
           alu_op         = 4'b0000;  // add
           jump           = 1'b0;   
         end
-      4'b0011:  // SUB
+      7'b0000011:  // SUB
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -63,9 +59,8 @@ module ControlUnit(
           alu_op         = 4'b0001;  // sub
           jump           = 1'b0;   
         end
-      4'b0100:  // INV
+      7'b0000100:  // INV
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -76,9 +71,8 @@ module ControlUnit(
           alu_op         = 4'b0010; // inv
           jump           = 1'b0;   
         end
-      4'b0101:  // LSL
+      7'b0000101:  // LSL
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -89,9 +83,8 @@ module ControlUnit(
           alu_op         = 4'b0011; // lsl
           jump           = 1'b0;   
          end
-      4'b0110:  // LSR
+      7'b0000110:  // LSR
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -102,9 +95,8 @@ module ControlUnit(
           alu_op         = 4'b0100; // lsr
           jump           = 1'b0;   
         end
-      4'b0111:  // AND
+      7'b0000111:  // AND
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -115,9 +107,8 @@ module ControlUnit(
           alu_op         = 4'b0101; // and
           jump           = 1'b0;   
         end
-      4'b1000:  // OR
+      7'b0001000:  // OR
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -128,9 +119,8 @@ module ControlUnit(
           alu_op         = 4'b0110; // or
           jump           = 1'b0;   
         end
-      4'b1001:  // SLT
+      7'b0001001:  // SLT
         begin
-          reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -141,9 +131,8 @@ module ControlUnit(
           alu_op         = 4'b0111; // slt
           jump           = 1'b0;   
         end
-      4'b1011:  // BEQ
+      7'b0001011:  // BEQ
         begin
-          reg_dst        = 2'b00;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
@@ -154,9 +143,8 @@ module ControlUnit(
           alu_op         = 4'b0001; // sub
           jump           = 1'b0;   
         end
-      4'b1100:  // BNE
+      7'b0001100:  // BNE
         begin
-          reg_dst        = 2'b00;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
@@ -167,9 +155,8 @@ module ControlUnit(
           alu_op         = 4'b0001; // sub
           jump           = 1'b0;   
         end
-      4'b1101:  // JMP
+      7'b0001101:  // JMP
         begin
-          reg_dst        = 2'b00;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
@@ -181,9 +168,8 @@ module ControlUnit(
           jump           = 1'b1;   
         end   
 
-      4'b1110:  // LUI
+      7'b0001110:  // LUI
         begin
-          reg_dst        = 2'b10;   // rd = rs1 
           alu_src        = 2'b10;   // 8 bit immediate
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -195,9 +181,8 @@ module ControlUnit(
           jump           = 1'b0;   
         end   
         
-      4'b1111:  // LLI
+      7'b0001111:  // LLI
         begin
-          reg_dst        = 2'b10;   // rs = rs1
           alu_src        = 2'b10;   // 8 bit immediate
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
@@ -213,7 +198,7 @@ module ControlUnit(
 
 
       default: begin // ADD
-          reg_dst        = 2'b01;
+          //reg_dst        = 2'b01;
           alu_src        = 2'b00;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
