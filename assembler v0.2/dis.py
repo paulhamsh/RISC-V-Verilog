@@ -44,31 +44,31 @@
 
 # Machine code
 
-# ld   -off6- x --rs2 --rs1 xxx --rd- xxx 0000
-# st   -off6- x --rs2 --rs1 xxx xxxxx xxx 0001  
-# add  xxxxxx x --rs2 --rs1 xxx --rd- xxx 0010  
-# inv  xxxxxx x --xxx --rs1 xxx --rd- xxx 0100
-# beq  -off6- x --rs2 --rs1 xxx xxxxx xxx 1011  
-# bne  -off6- x --rs2 --rs1 xxx xxxxx xxx 1100  
-# jmp   ----off12---  xxxxx xxx xxxxx xxx 1101  
-# lui  --imm8-- x xxx --rs1 xxx --rd- xxx 1110 
-# lli  --imm8-- x xxx --rs1 xxx --rd- xxx 1111
+# ld   -off6- x --rs2 --rs1 xxx --rd- 0 0000 11
+# st   -off6- x --rs2 --rs1 xxx xxxxx 0 0001 11 
+# add  xxxxxx x --rs2 --rs1 xxx --rd- 0 0010 11 
+# inv  xxxxxx x --xxx --rs1 xxx --rd- 0 0100 11
+# beq  -off6- x --rs2 --rs1 xxx xxxxx 0 1011 11 
+# bne  -off6- x --rs2 --rs1 xxx xxxxx 0 1100 11 
+# jmp   ----off12---  xxxxx xxx xxxxx 0 1101 11 
+# lui  --imm8-- x xxx --rs1 xxx --rd- 0 1110 11 
+# lli  --imm8-- x xxx --rs1 xxx --rd- 0 1111 11
 
 # As written
 
 # cmd regA, regB, regC, value/offset12/imm8
-# add x1,   x2,   x3
-# ld  x1,   x2          (-12)
+# add r1,   r2,   r3
+# ld  r1,   r2          (-12)
 
-# ld   -off6- x xxxxx --rgB xxx --rgA xxx 0000
-# st   -off6- x --rgA --rgB xxxxx xxx xxx 0001  
-# add  xxxxxx x --rgC --rgB xxx --rgA xxx 0010  
-# inv  xxxxxx x xxxxx --rgB xxx --rgA xxx 0100
-# beq  -off6- x --rgB --rgA xxxxx xxx xxx 1011  
-# bne  -off6- x --rgB --rgA xxxxx xxx xxx 1100  
-# jmp   ----off12---  xxxxx xxxxx xxx xxx 1101  
-# lui  --imm8-- x xxx --rgB xxx --rgA xxx 1110 
-# lli  --imm8-- x xxx --rgB xxx --rgA xxx 1111
+# ld   -off6- x xxxxx --rgB xxx --rgA 0 0000 11
+# st   -off6- x --rgA --rgB xxxxx xxx 0 0001 11 
+# add  xxxxxx x --rgC --rgB xxx --rgA 0 0010 11 
+# inv  xxxxxx x xxxxx --rgB xxx --rgA 0 0100 11
+# beq  -off6- x --rgB --rgA xxxxx xxx 0 1011 11 
+# bne  -off6- x --rgB --rgA xxxxx xxx 0 1100 11 
+# jmp   ----off12---  xxxxx xxxxx xxx 0 1101 11 
+# lui  --imm8-- x xxx --rgB xxx --rgA 0 1110 11
+# lli  --imm8-- x xxx --rgB xxx --rgA 0 1111 11
 
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
@@ -124,14 +124,16 @@ def disassemble(code):
         elif line != "":
             value = int(line, 2)
 
-            opcode = (value & 0b000000_0_00000_00000_000_00000_000_1111)
-            rs1    = (value & 0b000000_0_00000_11111_000_00000_000_0000)  >> 15
-            rs2    = (value & 0b000000_0_11111_00000_000_00000_000_0000)  >> 20
-            rd     = (value & 0b000000_0_00000_00000_000_11111_000_0000)  >> 7
-            off6   = (value & 0b111111_0_00000_00000_000_00000_000_0000)  >> 26
-            off12  = (value & 0b111111_1_11111_00000_000_00000_000_0000)  >> 20
+            opcode = (value & 0b000000_0_00000_00000_000_00000_111_1111)
+            rs1    = (value & 0b000000_0_00000_11111_000_00000_000_0000) >> 15
+            rs2    = (value & 0b000000_0_11111_00000_000_00000_000_0000) >> 20
+            rd     = (value & 0b000000_0_00000_00000_000_11111_000_0000) >> 7
+            off6   = (value & 0b111111_0_00000_00000_000_00000_000_0000) >> 26
+            off12  = (value & 0b111111_1_11111_00000_000_00000_000_0000) >> 20
             imm8   = (value & 0b111111_11_0000_00000_000_00000_000_0000) >> 24
-           
+
+            opcode = opcode >> 2 # drop bottom two bits as not needed
+            
             # fix signed offset
             if off6 > 31:
                 signed_offset = off6 - 64

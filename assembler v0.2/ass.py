@@ -111,15 +111,15 @@ def tokenise(txt) :
 
 # Machine code
 
-# ld   -off6- x --rs2 --rs1 xxx --rd- xxx 0000
-# st   -off6- x --rs2 --rs1 xxx xxxxx xxx 0001  
-# add  xxxxxx x --rs2 --rs1 xxx --rd- xxx 0010  
-# inv  xxxxxx x --xxx --rs1 xxx --rd- xxx 0100
-# beq  -off6- x --rs2 --rs1 xxx xxxxx xxx 1011  
-# bne  -off6- x --rs2 --rs1 xxx xxxxx xxx 1100  
-# jmp   ----off12---  xxxxx xxx xxxxx xxx 1101  
-# lui  --imm8-- x xxx --rs1 xxx --rd- xxx 1110 
-# lli  --imm8-- x xxx --rs1 xxx --rd- xxx 1111
+# ld   -off6- x --rs2 --rs1 xxx --rd- 0 0000 11
+# st   -off6- x --rs2 --rs1 xxx xxxxx 0 0001 11 
+# add  xxxxxx x --rs2 --rs1 xxx --rd- 0 0010 11 
+# inv  xxxxxx x --xxx --rs1 xxx --rd- 0 0100 11
+# beq  -off6- x --rs2 --rs1 xxx xxxxx 0 1011 11 
+# bne  -off6- x --rs2 --rs1 xxx xxxxx 0 1100 11 
+# jmp   ----off12---  xxxxx xxx xxxxx 0 1101 11 
+# lui  --imm8-- x xxx --rs1 xxx --rd- 0 1110 11 
+# lli  --imm8-- x xxx --rs1 xxx --rd- 0 1111 11
 
 # As written
 
@@ -127,15 +127,15 @@ def tokenise(txt) :
 # add r1,   r2,   r3
 # ld  r1,   r2          (-12)
 
-# ld   -off6- x xxxxx --rgB xxx --rgA xxx 0000
-# st   -off6- x --rgA --rgB xxxxx xxx xxx 0001  
-# add  xxxxxx x --rgC --rgB xxx --rgA xxx 0010  
-# inv  xxxxxx x xxxxx --rgB xxx --rgA xxx 0100
-# beq  -off6- x --rgB --rgA xxxxx xxx xxx 1011  
-# bne  -off6- x --rgB --rgA xxxxx xxx xxx 1100  
-# jmp   ----off12---  xxxxx xxxxx xxx xxx 1101  
-# lui  --imm8-- x xxx --rgB xxx --rgA xxx 1110 
-# lli  --imm8-- x xxx --rgB xxx --rgA xxx 1111
+# ld   -off6- x xxxxx --rgB xxx --rgA 0 0000 11
+# st   -off6- x --rgA --rgB xxxxx xxx 0 0001 11 
+# add  xxxxxx x --rgC --rgB xxx --rgA 0 0010 11 
+# inv  xxxxxx x xxxxx --rgB xxx --rgA 0 0100 11
+# beq  -off6- x --rgB --rgA xxxxx xxx 0 1011 11 
+# bne  -off6- x --rgB --rgA xxxxx xxx 0 1100 11 
+# jmp   ----off12---  xxxxx xxxxx xxx 0 1101 11 
+# lui  --imm8-- x xxx --rgB xxx --rgA 0 1110 11
+# lli  --imm8-- x xxx --rgB xxx --rgA 0 1111 11
 
 def assemble(code):
     result = []
@@ -186,23 +186,23 @@ def assemble(code):
             
         if cmd:
             if   cmd == "ld":
-                code = f"{signed_value:06b}_0_00000_{regB:05b}_000_{regA:05b}_0000000"
+                code = f"{signed_value:06b}_0_00000_{regB:05b}_000_{regA:05b}_0000011"
             elif cmd == "st":
-                code = f"{signed_value:06b}_0_{regA:05b}_{regB:05b}_000_00000_0000001"
+                code = f"{signed_value:06b}_0_{regA:05b}_{regB:05b}_000_00000_0000111"
             elif cmd == "beq":
-                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0001011"
+                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0101111"
             elif cmd == "bne":
-                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0001100"
+                code = f"{branch_value:06b}_0_{regB:05b}_{regA:05b}_000_00000_0110011"
             elif cmd == "jmp":		
-                code = f"  {jump_value:012b}_00000_000_00000_0001101"
+                code = f"  {jump_value:012b}_00000_000_00000_0110111"
             elif cmd == "inv":		
-                code = f" 000000_000000_{regB:05b}_000_{regA:05b}_0000100"
+                code = f" 000000_000000_{regB:05b}_000_{regA:05b}_0010011"
             elif cmd == "lui":		
-                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0001110"
+                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0111011"
             elif cmd == "lli":		
-                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0001111"
+                code = f"{immediate:08b}_0_000_{regB:05b}_000_{regA:05b}_0111111"
             elif cmd in arith_cmds:		
-                code = f"000000_0_{regC:05b}_{regB:05b}_000_{regA:05b}_000{arith_cmds[cmd]:04b}" 
+                code = f"000000_0_{regC:05b}_{regB:05b}_000_{regA:05b}_0{arith_cmds[cmd]:04b}11" 
                 
         result.append((line_number, label, code, comment))
         if code:
