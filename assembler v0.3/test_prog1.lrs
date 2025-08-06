@@ -1,0 +1,19 @@
+start:
+0         ld  x3, x2(0)            
+4         ld  x1, x2(4)            
+8         add x2, x3, x1           
+12        st  x2, x1(0)            
+16        sub x2, x3, x1           
+20        inv x2, x3               
+24        lsl x2, x3, x1           
+28        lsr x2, x3, x1           
+32        and x2, x3, x1           
+36        or  x2, x3, x1           
+40        slt x2, x3, x1           
+44        add x3, x3, x3           
+48        beq x3, x2, next         
+52        jmp next                 
+56        jmp -44                  // {jump 16}
+next:
+60        bne x3, x2, -8           // {jump 56}
+64        jmp -12                  // {jump 56}

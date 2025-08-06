@@ -1,0 +1,6 @@
+// comment line
+start:
+          ld  x3, x2(0)            
+          ld  x1, x2(1)            
+          add x2, x3, x1           
+          st  x2, x1(0)            
