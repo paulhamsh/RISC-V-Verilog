@@ -36,6 +36,13 @@ def is_uint(s):
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
 
+
+def int_to_twos_complement(val, bits):
+    if val < 0:
+        return val + (1 << bits)
+    else:
+        return val
+
         
 def tokenise(txt) :
     # remove () and [] and + that might surround / precede an integer
@@ -162,35 +169,19 @@ def assemble(code):
         (label, cmd, regA, regB, regC, value, jmp_label, comment) = tokenise(line)
         code = ""
         
-        # Calculate a jump offset
+        # Calculate a jump offset for jump or branch - all are relative
         if jmp_label:
             value = label_to_line[jmp_label] - (line_number + 4)
             
-            """
-            if cmd == "jmp":
-                value = label_to_line[jmp_label]
-            else:
-                # only do this if we are bne or beq
-                value = label_to_line[jmp_label] - (line_number + 4)
-            """
-            
+           
         # need to create values for: signed offsets, signed branch offset, jump offset, lli/lui immediate
         if value is not None:
-            branch_value = value >> 1
-            jump_value = value >> 1
-            signed_value = value
-            immediate = value
-            
-            if branch_value < 0:
-                branch_value = 64 + branch_value    # a 6 bit value, and 2 << 5 is 64
-
-            if jump_value < 0:
-                jump_value = 4096 + jump_value      # a 12 bit value, and 2 << 11 is 4096
-                print(jump_value)
-                
-            if signed_value < 0:
-                signed_value = 64 + signed_value
-            
+            immediate    = value
+            branch_value = int_to_twos_complement(value >> 1, 6)
+            signed_value = int_to_twos_complement(value, 6)
+            jump_value   = int_to_twos_complement(value >> 1, 12)
+    
+             
         if cmd:
             if   cmd == "ld":
                 code = f"{signed_value:06b}_0_00000_{regB:05b}_000_{regA:05b}_0000011"

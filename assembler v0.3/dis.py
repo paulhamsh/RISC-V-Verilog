@@ -73,6 +73,15 @@
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
 
+def twos_complement_to_int(val, bits):
+    limit = 1 << bits
+    max_positive_int = (1 << (bits - 1)) - 1
+
+    if val > max_positive_int:
+        return val - limit 
+    else:
+        return val
+
 def disassemble(code):
     full_assembly = []
     opcodes = ["ld ", "st ", "add", "sub", "inv", "lsl", "lsr", "and", "or ", "slt", "", "beq", "bne", "jmp", "lui", "lli"]
@@ -135,15 +144,8 @@ def disassemble(code):
             opcode = opcode >> 2 # drop bottom two bits as not needed
             
             # fix signed offset
-            if off6 > 31:
-                signed_offset = off6 - 64
-            else:
-                signed_offset = off6
-
-            if off12 > 2047:
-                signed_off12 = off12 - 4096
-            else:
-                signed_off12 = off12
+            signed_off12  = twos_complement_to_int(off12, 12)
+            signed_offset = twos_complement_to_int(off6, 6)
                 
             # base instruction
             assembly = f"{opcodes[opcode]:3s} "
@@ -159,7 +161,6 @@ def disassemble(code):
             elif opcode == 0b1101:
                 word_offset = signed_off12 * 2   # stored in multiples of 2 bytes
                 jump_dest = line_number + 4 + word_offset
-                print("***", off12, signed_off12, word_offset, jump_dest)
                 if label_names.get(jump_dest):
                     assembly += label_names[jump_dest]
                 else:
