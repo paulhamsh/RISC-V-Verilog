@@ -1,5 +1,3 @@
-`timescale 1ns / 1ps
-
 module Risc32(
   input         clk,
   output [31:0] io_address,
@@ -11,9 +9,11 @@ module Risc32(
   
   // Control unit signals
   wire       cu_jump, cu_bne, cu_beq; 
+  wire [2:0] cu_branch_op;
   wire       cu_data_read_en, cu_data_write_en;
   wire       cu_mem_to_reg, cu_reg_write_en;
-  wire       cu_alu_src; 
+  wire       cu_alu_b_src; 
+  wire       cu_alu_a_src;
   wire [3:0] cu_alu_op;
   
   // Opcode from datapath to control unit
@@ -25,9 +25,11 @@ module Risc32(
     .clk(clk),
     .jump(cu_jump),
     .beq(cu_beq),
+    .branch_op(cu_branch_op),
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
-    .alu_src(cu_alu_src),
+    .alu_b_src(cu_alu_b_src),
+    .alu_a_src(cu_alu_a_src),
     .mem_to_reg(cu_mem_to_reg),
     .reg_write_en(cu_reg_write_en),
     .bne(cu_bne),
@@ -50,9 +52,11 @@ module Risc32(
     .jump(cu_jump),
     .bne(cu_bne),
     .beq(cu_beq),
+    .branch_op(cu_branch_op),
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
-    .alu_src(cu_alu_src),
+    .alu_b_src(cu_alu_b_src),
+    .alu_a_src(cu_alu_a_src),
     .reg_write_en(cu_reg_write_en)
   );
 

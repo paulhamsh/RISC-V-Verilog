@@ -4,9 +4,11 @@
 module DatapathUnit(
   input         clk,
   input         jump, beq, bne, 
+  input  [2:0]  branch_op,
   input         data_read_en, data_write_en, 
   input         reg_write_en, mem_to_reg, 
-  input         alu_src,
+  input         alu_b_src,
+  input         alu_a_src,
   input  [3:0]  alu_op,
   output [6:0]  opcode,
  
@@ -34,7 +36,8 @@ module DatapathUnit(
   wire [31:0] rs2_value;
   
   reg  [31:0] ext_imm;
-  wire [31:0] alu_in;
+  wire [31:0] alu_b_in;
+  wire [31:0] alu_a_in;
   wire [31:0] alu_out;
   wire        zero_flag;
 
@@ -71,6 +74,10 @@ module DatapathUnit(
   // Output the opcode for control unit 
   assign opcode = instr[6:0];
 
+  assign rs1 = instr[17:15];
+  assign rs2 = instr[22:20];
+  assign rd  = instr[9:7];
+
   //// 
   //// Instruction memory
   //// 
@@ -104,10 +111,7 @@ module DatapathUnit(
     .in1(data_read_value));
 
   // Register allocations
-  
-  assign rs1 = instr[17:15];
-  assign rs2 = instr[22:20];
-  assign rd  = instr[9:7];
+
   
   RegisterUnit reg_file
   (
@@ -138,10 +142,16 @@ module DatapathUnit(
   
   // ALU_IN_MUX
   // determine input for alu - either the rs2 value, the extended immediate value or 8 bit immediate
+ 
+   Mux2_32 alu_a_mux (
+    .sel(alu_a_src),
+    .out(alu_a_in),
+    .in0(rs1_value),
+    .in1(pc_current));
   
-  Mux2_32 alu_mux (
-    .sel(alu_src),
-    .out(alu_in),
+  Mux2_32 alu_b_mux (
+    .sel(alu_b_src),
+    .out(alu_b_in),
     .in0(rs2_value),
     .in1(ext_imm));
   
@@ -149,8 +159,8 @@ module DatapathUnit(
   // set up the ALU with rs1 and alu_in as inputs - exposes zero flag for branching
   ALU alu_unit
   (
-    .a(rs1_value), 
-    .b(alu_in), 
+    .a(alu_a_in), 
+    .b(alu_b_in), 
     .alu_control(alu_op), 
     .result(alu_out), 
     .zero(zero_flag)
@@ -167,14 +177,22 @@ module DatapathUnit(
   // Then pc_next set to the correct value - PC + 1, branch destination or jump destination
   
   //assign branch_control = (beq && zero_flag) || (bne && ~zero_flag);
-  assign branch_control = (beq && zero_flag) || (bne && ~zero_flag) || jump;
+  
+  BranchComp br_comp(
+    .a(rs1_value),
+    .b(rs2_value),
+    .branch_op(branch_op),
+    .branch(branch_control)
+    );
+  
+  //assign branch_control = (beq && zero_flag) || (bne && ~zero_flag) || jump;
   assign pc_plus_4 = pc_current + 32'd4;  
  
-  Mux2_32 branch(
+  Mux2_32 branch_calc(
     .sel(branch_control),
     .out(pc_next),
     .in0(pc_plus_4),
-    .in1(pc_plus_4 + ext_imm)
+    .in1(pc_current + ext_imm)
   );
   
  
@@ -197,8 +215,7 @@ module DatapathUnit(
     .io_write_en(io_write_en),
     .io_write_value(io_write_value),
     .is_io(is_io)
-  
-  );
+   );
  
 
   // Data memory 

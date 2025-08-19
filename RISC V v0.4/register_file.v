@@ -16,21 +16,22 @@ module RegisterUnit(
   );
   
   // the actual registers
-  reg    [31:0] reg_array [7:0];
+  reg    [31:0] reg_array [31:0];
 
   integer i;
   initial begin
-    for(i = 0; i < 8; i = i + 1)
+    for(i = 0; i <= 31; i = i + 1)
       reg_array[i] <= 32'd0;
+    reg_array[0] = 32'hffff;
   end
     
   always @ (posedge clk ) begin
-    if (reg_write_en) begin
+    if (reg_write_en && (rd != 0)) begin
       reg_array[rd] <= rd_value;
     end
   end
   
-  assign rs1_value = reg_array[rs1];
-  assign rs2_value = reg_array[rs2];
+  assign rs1_value = (rs1 == 0) ? 0 : reg_array[rs1];
+  assign rs2_value = (rs2 == 0) ? 0 : reg_array[rs2];
 
 endmodule

@@ -1,5 +1,3 @@
-
-
 module ALU(
   input  [31:0]     a,  //src1
   input  [31:0]     b,  //src2

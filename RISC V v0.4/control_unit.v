@@ -1,11 +1,11 @@
-`timescale 1ns / 1ps
-
 module ControlUnit(
       input [6:0] opcode,
       output reg [3:0] alu_op,
       output reg jump, beq, bne, 
+      output reg [2:0] branch_op,
       output reg data_read_en, data_write_en, mem_to_reg, reg_write_en,
-      output reg alu_src
+      output reg alu_b_src,
+      output reg alu_a_src
       );
 
   always @(*)
@@ -13,11 +13,13 @@ module ControlUnit(
     case(opcode) 
       7'b0000011:  // LD
         begin
-          alu_src       = 1'b1;
+          alu_b_src     = 1'b1;
+          alu_a_src     = 1'b0;
           mem_to_reg    = 1'b1;
           reg_write_en  = 1'b1;
           data_read_en  = 1'b1;
           data_write_en = 1'b0;
+          branch_op     = 3'b010;   // no branch
           beq           = 1'b0;
           bne           = 1'b0;
           alu_op        = 4'b0000;  // add
@@ -25,11 +27,13 @@ module ControlUnit(
         end
       7'b0000111:  // ST
         begin
-          alu_src       = 1'b1;
+          alu_b_src     = 1'b1;
+          alu_a_src     = 1'b0;          
           mem_to_reg    = 1'b0;
           reg_write_en  = 1'b0;
           data_read_en  = 1'b0;      
           data_write_en = 1'b1;
+          branch_op     = 3'b010;   // no branch
           beq           = 1'b0;
           bne           = 1'b0;
           alu_op        = 4'b0000;  // add
@@ -37,11 +41,13 @@ module ControlUnit(
         end
       7'b0001011:  // ADD
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;          
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;   // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0000;  // add
@@ -49,11 +55,13 @@ module ControlUnit(
         end
       7'b0001111:  // SUB
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;         
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;   // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0001;  // sub
@@ -61,11 +69,13 @@ module ControlUnit(
         end
       7'b0010011:  // INV
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0010; // inv
@@ -73,11 +83,13 @@ module ControlUnit(
         end
       7'b0010111:  // LSL
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0011; // lsl
@@ -85,11 +97,13 @@ module ControlUnit(
          end
       7'b0011011:  // LSR
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0100; // lsr
@@ -97,11 +111,13 @@ module ControlUnit(
         end
       7'b0011111:  // AND
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;         
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0101; // and
@@ -109,11 +125,13 @@ module ControlUnit(
         end
       7'b0100011:  // OR
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src       = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0110; // or
@@ -121,11 +139,13 @@ module ControlUnit(
         end
       7'b0100111:  // SLT
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0111; // slt
@@ -133,11 +153,13 @@ module ControlUnit(
         end
       7'b0101111:  // BEQ
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b000;  // beq
           beq            = 1'b1;
           bne            = 1'b0;
           alu_op         = 4'b0001; // sub
@@ -145,11 +167,13 @@ module ControlUnit(
         end
       7'b0110011:  // BNE
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b001;  // bne
           beq            = 1'b0;
           bne            = 1'b1;
           alu_op         = 4'b0001; // sub
@@ -157,11 +181,13 @@ module ControlUnit(
         end
       7'b0110111:  // JMP
         begin
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src      = 1'b0;          
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b011;   // branch always
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0000; // add
@@ -169,22 +195,26 @@ module ControlUnit(
         end   
       7'b0111011:  // LUI
         begin
-          alu_src        = 1'b1;   // immediate
+          alu_b_src      = 1'b1;   // immediate
+          alu_a_src      = 1'b0;          
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;  // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b1000; // lui
           jump           = 1'b0;   
         end   
        default: begin // ADD
-          alu_src        = 1'b0;
+          alu_b_src      = 1'b0;
+          alu_a_src       = 1'b0;
           mem_to_reg     = 1'b0;
           reg_write_en   = 1'b1;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
+          branch_op      = 3'b010;   // no branch
           beq            = 1'b0;
           bne            = 1'b0;
           alu_op         = 4'b0000;
