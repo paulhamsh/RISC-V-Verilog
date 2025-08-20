@@ -1,16 +1,21 @@
 module ControlUnit(
-      input [6:0] opcode,
-      input [6:0] funct7,
-      input [2:0] funct3,
-      output reg [3:0] alu_op,
-      output reg [2:0] branch_cond,
-      output reg data_read_en, data_write_en, 
-      output reg [1:0] mem_to_reg, 
-      output reg reg_write_en,
-      output reg alu_b_src,
-      output reg alu_a_src
-      );
+  input      [6:0] opcode,
+  input      [6:0] funct7,
+  input      [2:0] funct3,
+  output reg [3:0] alu_op,
+  output reg [2:0] branch_cond,
+  output reg       data_read_en, 
+  output reg       data_write_en, 
+  output reg [1:0] mem_to_reg, 
+  output reg       reg_write_en,
+  output reg       alu_b_src,
+  output reg       alu_a_src
+  );
 
+
+  wire [8:0] fullop;
+  assign fullop = {funct7[6], funct3, opcode[6:2]};  // this is enough to work out the command - 9 bits
+  
   always @(*)
   begin
     case(opcode) 
@@ -126,8 +131,8 @@ module ControlUnit(
         end
       7'b0101111:  // BEQ
         begin
-          alu_b_src      = 1'b0;
-          alu_a_src      = 1'b0;
+          alu_b_src      = 1'b1;   //  ext_imm
+          alu_a_src      = 1'b1;   //  pc_current
           mem_to_reg     = 2'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
@@ -137,8 +142,8 @@ module ControlUnit(
         end
       7'b0110011:  // BNE
         begin
-          alu_b_src      = 1'b0;
-          alu_a_src      = 1'b0;
+          alu_b_src      = 1'b1;   //  ext_imm
+          alu_a_src      = 1'b1;   //  pc_current
           mem_to_reg     = 2'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
@@ -148,13 +153,13 @@ module ControlUnit(
         end
       7'b0110111:  // JMP
         begin
-          alu_b_src      = 1'b0;
-          alu_a_src      = 1'b0;          
+          alu_b_src      = 1'b1;   //  ext_imm
+          alu_a_src      = 1'b1;   //  pc_current          
           mem_to_reg     = 2'b0;
           reg_write_en   = 1'b0;
           data_read_en   = 1'b0;
           data_write_en  = 1'b0;
-          branch_cond    = 3'b011;   // branch always
+          branch_cond    = 3'b011;  // branch always
           alu_op         = 4'b0000; // add
         end   
       7'b0111011:  // LUI

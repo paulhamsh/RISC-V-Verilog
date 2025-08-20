@@ -1,23 +1,19 @@
 module RegisterUnit(
   input         clk,
-  // write port
   input         reg_write_en,
   input  [2:0]  rd, 
   input  [31:0] rd_value,
-  //read port 1
   input  [2:0]  rs1,
-  output [31:0] rs1_value,
-  //read port 2
   input  [2:0]  rs2,
+  output [31:0] rs1_value,
   output [31:0] rs2_value
   );
   
-  // the actual registers
   reg    [31:0] reg_array [31:0];
 
   integer i;
   initial begin
-    reg_array[0] = 32'hffff;
+    reg_array[0] = 32'hffff;               // set x0 to be hffff so if anything does read or write (bug) then we can tell
     for(i = 1; i <= 31; i = i + 1)
       reg_array[i] <= 32'd0;
   end

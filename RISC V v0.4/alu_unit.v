@@ -1,7 +1,7 @@
 module ALU(
-  input  [31:0]     a,  //src1
-  input  [31:0]     b,  //src2
-  input  [3:0]      alu_control, //function sel
+  input  [31:0] a,           //src1
+  input  [31:0] b,           //src2
+  input  [3:0]  alu_control, //function sel
  
   output reg [31:0] result  //result 
   );

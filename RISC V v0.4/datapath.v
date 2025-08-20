@@ -63,10 +63,11 @@ module DatapathUnit(
     pc_current <= 32'd0;
   end
  
-  // Update to next PC on rising clock
+  // Update to pc_next on rising clock
+  // Note - the last bit it set to 0 just in case JALR had set it (the only case where it could be non-zero)
   always @(posedge clk)
   begin 
-    pc_current <= pc_next;
+    pc_current <= {pc_next[31:1], 1'b0};     // last bit set to 0(for JALR)
   end
 
   assign pc_plus_4 = pc_current + 32'd4;  
@@ -192,7 +193,7 @@ module DatapathUnit(
     .sel(branch_control),
     .out(pc_next),
     .in0(pc_plus_4),
-    .in1(pc_current + ext_imm)  // alu_out!!!
+    .in1(alu_out)
   );
    
   ////
