@@ -1,16 +1,15 @@
-`timescale 1ns / 1ps
-// fpga4student.com 
-
 module DatapathUnit(
   input         clk,
-  input         jump, beq, bne, 
-  input  [2:0]  branch_op,
+  input  [2:0]  branch_cond,
   input         data_read_en, data_write_en, 
-  input         reg_write_en, mem_to_reg, 
+  input         reg_write_en, 
+  input  [1:0]  mem_to_reg, 
   input         alu_b_src,
   input         alu_a_src,
   input  [3:0]  alu_op,
   output [6:0]  opcode,
+  output [6:0]  funct7,
+  output [2:0]  funct3,
  
   output [31:0] io_address,
   output [31:0] io_write_value,
@@ -39,7 +38,6 @@ module DatapathUnit(
   wire [31:0] alu_b_in;
   wire [31:0] alu_a_in;
   wire [31:0] alu_out;
-  wire        zero_flag;
 
   wire [31:0] data_read_value;
 
@@ -71,13 +69,17 @@ module DatapathUnit(
     pc_current <= pc_next;
   end
 
-  // Output the opcode for control unit 
+  assign pc_plus_4 = pc_current + 32'd4;  
+
   assign opcode = instr[6:0];
-
-  assign rs1 = instr[17:15];
-  assign rs2 = instr[22:20];
-  assign rd  = instr[9:7];
-
+  assign funct3 = instr[14:12];
+  assign funct7 = instr[31:25];
+  
+  assign rs1    = instr[17:15];
+  assign rs2    = instr[22:20];
+  assign rd     = instr[9:7];
+  
+  
   //// 
   //// Instruction memory
   //// 
@@ -100,21 +102,23 @@ module DatapathUnit(
     .sel(is_io), 
     .out(data_read_value), 
     .in0(mem_read_value), 
-    .in1(io_read_value));
+    .in1(io_read_value)
+    );
     
   // RD_VALUE_MUX   
 
-  Mux2_32 read_value_mux(
+  Mux4_32 read_value_mux(
     .sel(mem_to_reg),
     .out(rd_value), 
     .in0(alu_out), 
-    .in1(data_read_value));
+    .in1(data_read_value),
+    .in2(pc_plus_4),
+    .in3(alu_out)           // should never be selected
+    );
 
   // Register allocations
 
-  
-  RegisterUnit reg_file
-  (
+    RegisterUnit reg_file (
     .clk(clk),
     .reg_write_en(reg_write_en),
     .rd(rd),
@@ -141,29 +145,28 @@ module DatapathUnit(
     endcase 
   
   // ALU_IN_MUX
-  // determine input for alu - either the rs2 value, the extended immediate value or 8 bit immediate
+  // determine input for alu - either the rs2 value or the extended immediate value
  
    Mux2_32 alu_a_mux (
     .sel(alu_a_src),
     .out(alu_a_in),
     .in0(rs1_value),
-    .in1(pc_current));
+    .in1(pc_current)
+    );
   
   Mux2_32 alu_b_mux (
     .sel(alu_b_src),
     .out(alu_b_in),
     .in0(rs2_value),
-    .in1(ext_imm));
-  
-  
+    .in1(ext_imm)
+    );
+   
   // set up the ALU with rs1 and alu_in as inputs - exposes zero flag for branching
-  ALU alu_unit
-  (
+  ALU alu_unit (
     .a(alu_a_in), 
     .b(alu_b_in), 
     .alu_control(alu_op), 
-    .result(alu_out), 
-    .zero(zero_flag)
+    .result(alu_out)
   );
 
   ////
@@ -171,37 +174,32 @@ module DatapathUnit(
   ////
   
   // BRANCH_MUX
-  // The PC increments by 1
+  // The PC increments by 4
   // If a branch is needed, branch_control is true, and the destination is set a PC + 4 + ext_imm
   // If a jump is needed, the jump destination is calculated
-  // Then pc_next set to the correct value - PC + 1, branch destination or jump destination
+  // Then pc_next set to the correct value - PC + 4, branch destination or jump destination
   
-  //assign branch_control = (beq && zero_flag) || (bne && ~zero_flag);
-  
-  BranchComp br_comp(
+  // Branch comparator - do the comparsion based on branch_cond and set branch_control to 1 if a branch is needed
+  BranchComp br_comp (
     .a(rs1_value),
     .b(rs2_value),
-    .branch_op(branch_op),
+    .branch_cond(branch_cond),
     .branch(branch_control)
     );
-  
-  //assign branch_control = (beq && zero_flag) || (bne && ~zero_flag) || jump;
-  assign pc_plus_4 = pc_current + 32'd4;  
- 
-  Mux2_32 branch_calc(
+
+  // Then select which is the new pc
+  Mux2_32 branch_calc (
     .sel(branch_control),
     .out(pc_next),
     .in0(pc_plus_4),
-    .in1(pc_current + ext_imm)
+    .in1(pc_current + ext_imm)  // alu_out!!!
   );
-  
- 
+   
   ////
   //// Address decoder
   ////
 
-  AddressDecoder ad
-  (
+  AddressDecoder ad (
     .data_address(alu_out),
     .data_read_en(data_read_en),
     .data_write_en(data_write_en),

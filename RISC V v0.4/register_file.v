@@ -1,6 +1,3 @@
-`timescale 1ns / 1ps
-
-
 module RegisterUnit(
   input         clk,
   // write port
@@ -20,9 +17,9 @@ module RegisterUnit(
 
   integer i;
   initial begin
-    for(i = 0; i <= 31; i = i + 1)
-      reg_array[i] <= 32'd0;
     reg_array[0] = 32'hffff;
+    for(i = 1; i <= 31; i = i + 1)
+      reg_array[i] <= 32'd0;
   end
     
   always @ (posedge clk ) begin

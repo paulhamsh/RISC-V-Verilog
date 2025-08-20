@@ -3,8 +3,7 @@ module ALU(
   input  [31:0]     b,  //src2
   input  [3:0]      alu_control, //function sel
  
-  output reg [31:0] result,  //result 
-  output            zero
+  output reg [31:0] result  //result 
   );
 
   always @(*)
@@ -25,6 +24,4 @@ module ALU(
         default:  result = a + b;   // add
       endcase
     end 
-
-  assign zero = (result == 32'd0) ? 1'b1: 1'b0;
 endmodule

@@ -8,34 +8,34 @@ module Risc32(
   );
   
   // Control unit signals
-  wire       cu_jump, cu_bne, cu_beq; 
-  wire [2:0] cu_branch_op;
+  wire [2:0] cu_branch_cond;
   wire       cu_data_read_en, cu_data_write_en;
-  wire       cu_mem_to_reg, cu_reg_write_en;
+  wire [1:0] cu_mem_to_reg; 
+  wire       cu_reg_write_en;
   wire       cu_alu_b_src; 
   wire       cu_alu_a_src;
   wire [3:0] cu_alu_op;
   
   // Opcode from datapath to control unit
-  wire [6:0] opcode;
+  wire [6:0] dp_opcode;
+  wire [6:0] dp_funct7;
+  wire [2:0] dp_funct3;
   
   // Datapath
   DatapathUnit datapath
   (
     .clk(clk),
-    .jump(cu_jump),
-    .beq(cu_beq),
-    .branch_op(cu_branch_op),
+    .branch_cond(cu_branch_cond),
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
     .alu_b_src(cu_alu_b_src),
     .alu_a_src(cu_alu_a_src),
     .mem_to_reg(cu_mem_to_reg),
     .reg_write_en(cu_reg_write_en),
-    .bne(cu_bne),
     .alu_op(cu_alu_op),
-    .opcode(opcode),
-    
+    .opcode(dp_opcode),
+    .funct7(dp_funct7),
+    .funct3(dp_funct3),
     .io_address(io_address),
     .io_write_value(io_write_value),
     .io_read_value(io_read_value),
@@ -46,13 +46,12 @@ module Risc32(
   // control unit
   ControlUnit control
   (
-    .opcode(opcode),
+    .opcode(dp_opcode),
+    .funct7(dp_funct7),
+    .funct3(dp_funct3),    
     .mem_to_reg(cu_mem_to_reg),
     .alu_op(cu_alu_op),
-    .jump(cu_jump),
-    .bne(cu_bne),
-    .beq(cu_beq),
-    .branch_op(cu_branch_op),
+    .branch_cond(cu_branch_cond),
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
     .alu_b_src(cu_alu_b_src),
