@@ -1,0 +1,35 @@
+// this can be run through in testbench and will eventually loop around 09, 0a and ob
+//  start:0
+//        000000_0_00000_00010_000_00100_0000000 // 00 load x4 <- mem x2   0 = 1
+//        000100_0_00000_00010_000_00001_0000000 // 01 load x1 <- mem x2   4 = 2
+//        000010_0_00001_00100_000_00000_0001100 // 02 bne 2  skip two instruction     - this should branch, to 05
+//        000000_0_00001_00100_000_00011_0000010 // 03 add x3 <- x4   x1 = 3            - not executed
+//          000000000000_00000_000_00000_0001101 // 04 j jump to the beginning address  - not executed
+//        000000_0_00000_00010_000_00001_0000000 // 05 load x1 <- mem x2   0 = 1
+//        000011_0_00001_00100_000_00000_0001011 // 06 beq 3  skip three instruction   - this should branch, to 09
+//        000000_0_00001_00100_000_00011_0000010 // 07 add x3 <- x4   x1 = 2
+//          000000000000_00000_000_00000_0001101 // 08 j jump to the beginning address
+//          000000001010_00000_000_00000_0001101 // 09 j jump to 0a
+//  next:40
+//        000000_0_00000_00010_000_00001_0000000 // 0a load x1 <- mem x2   0 = 1
+//        111101_0_00001_00100_000_00000_0001011 // 0b beq -3  skip three instructions backwards - should jump back to 09
+//          000000000000_00000_000_00000_0001101 // 0c j jump to the beginning address
+//          000000000000_00000_000_00000_0001101 // 0c j jump to the beginning address
+//          000000000000_00000_000_00000_0001101 // 0c j jump to the beginning address
+start:
+0         ld  x4, x2(0)            
+4         ld  x1, x2(4)            
+8         bne x4, x1, 8            // {jump 16}
+12        add x3, x4, x1           
+16        jmp start                
+20        ld  x1, x2(0)            
+24        beq x4, x1, 12           // {jump 36}
+28        add x3, x4, x1           
+32        jmp start                
+36        jmp next                 
+next:
+40        ld  x1, x2(0)            
+44        beq x4, x1, -12          // {jump 32}
+48        jmp start                
+52        jmp start                
+56        jmp start                
