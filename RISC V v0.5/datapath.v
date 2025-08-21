@@ -30,11 +30,11 @@ module DatapathUnit(
       
   wire [31:0] instr;
   
-  wire [2:0]  rd;
+  wire [4:0]  rd;
   wire [31:0] rd_value;
-  wire [2:0]  rs1;
+  wire [4:0]  rs1;
   wire [31:0] rs1_value;
-  wire [2:0]  rs2;
+  wire [4:0]  rs2;
   wire [31:0] rs2_value;
   
   reg  [31:0] ext_imm;
@@ -72,7 +72,6 @@ module DatapathUnit(
   always @(posedge clk)
   begin 
     pc_current <= {pc_next[31:1], 1'b0};     // last bit set to 0(for JALR)
-    //pc_current <= pc_next; 
   end
 
   assign pc_plus_4 = pc_current + 32'd4;  
@@ -94,9 +93,9 @@ module DatapathUnit(
   assign funct3 = instr[14:12];
   assign funct7 = instr[31:25];
   
-  assign rs1    = instr[17:15];
-  assign rs2    = instr[22:20];
-  assign rd     = instr[9:7];
+  assign rs1    = instr[19:15];
+  assign rs2    = instr[24:20];
+  assign rd     = instr[11:7];
   
   
   //// 
@@ -143,7 +142,6 @@ module DatapathUnit(
   
   always @(*)
     case (opcode)
-      // New opcode immediate encoding
       7'b001_0011,
       7'b000_0011,
       7'b110_0111:  ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // I type (load)
@@ -153,7 +151,7 @@ module DatapathUnit(
       7'b011_0111,
       7'b001_0111:  ext_imm = { instr[31], instr[30:20], instr[19:12], 12'b0 };                    // U type
        
-      // Old opcode 
+      // Old opcodes  - remove eventually
       7'b00000_00:  ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // I type (load)
       7'b00001_00:  ext_imm = { {21{instr[31]}}, instr[30:25], instr[11:8],  instr[7]  };          // S type (store)
       7'b01011_00,
@@ -196,7 +194,7 @@ module DatapathUnit(
   
   // BRANCH_MUX
   // The PC increments by 4
-  // If a branch is needed, branch_control is true, and the destination is set a PC + 4 + ext_imm
+  // If a branch is needed, branch_control is true, and the destination is set a PC + ext_imm
   // If a jump is needed, the jump destination is calculated
   // Then pc_next set to the correct value - PC + 4, branch destination or jump destination
   

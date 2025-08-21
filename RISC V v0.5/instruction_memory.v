@@ -27,7 +27,7 @@ module InstructionMemory(
   
   initial
     begin
-      $readmemb("test_prog.mem", memory);
+      $readmemb("test_risc_prog.mem", memory);
     end
   
   assign instruction = memory[rom_addr]; 

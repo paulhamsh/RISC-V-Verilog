@@ -14,12 +14,120 @@ module ControlUnit(
   );
 
 
-  wire [8:0] fullop;
-  assign fullop = {funct7[6], funct3, opcode[6:2]};  // this is enough to work out the command - 9 bits
-  
   always @(*)
   begin
     case(opcode) 
+    7'b001_0011:   // arithmetic with immediate
+      begin
+        alu_a_src      = 1'b0;    // rs1
+        alu_b_src      = 1'b1;    // imm
+        mem_to_reg     = 2'b00;   // data from alu
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory 
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b010;  // no branch
+        alu_op         = {funct7[5], funct3};   // alu_op has been encoded to match this
+        data_size      = 3'b000;
+      end
+    7'b011_0011:   // arithmetic with registers
+      begin
+        alu_a_src      = 1'b0;    // rs1
+        alu_b_src      = 1'b0;    // rs2
+        mem_to_reg     = 2'b00;   // data from alu
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory 
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b010;  // no branch
+        alu_op         = {funct7[5], funct3};   // alu_op has been encoded to match this
+        data_size      = 3'b000;      
+      end   
+    7'b110_0111:   // jalr          
+      begin
+        alu_a_src      = 1'b0;    // rs1  
+        alu_b_src      = 1'b1;    // ext_imm
+        mem_to_reg     = 2'b10;   // pc + 4
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory 
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b011;  // branch always
+        alu_op         = 4'b0000; // add
+        data_size      = 3'b000;
+      end    
+    7'b110_1111:   // jal   
+      begin
+        alu_a_src      = 1'b1;    // pc_current  
+        alu_b_src      = 1'b1;    // ext_imm
+        mem_to_reg     = 2'b10;   // pc + 4
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory   
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b011;  // branch always
+        alu_op         = 4'b0000; // add
+        data_size      = 3'b000;
+      end       
+    7'b010_0011:   // store
+      begin
+        alu_a_src     = 1'b0;     // rs1
+        alu_b_src     = 1'b1;     // ext_imm
+        mem_to_reg    = 2'b00;    // data from alu
+        reg_write_en  = 1'b0;     // no write to rd
+        data_read_en  = 1'b0;     // no read from memory   
+        data_write_en = 1'b1;     // no write to memory
+        branch_cond   = 3'b010;   // no branch
+        alu_op        = 4'b0000;  // add
+        data_size     = 3'b000;
+      end  
+    7'b000_0011:   // load
+      begin
+        alu_a_src     = 1'b0;     // rs1
+        alu_b_src     = 1'b1;     // ext_imm
+        mem_to_reg    = 2'b01;    // data from memory
+        reg_write_en  = 1'b1;     // write to rd
+        data_read_en  = 1'b1;     // read from memory
+        data_write_en = 1'b0;     // no write to memory
+        branch_cond   = 3'b010;   // no branch
+        alu_op        = 4'b0000;  // add
+        data_size     = 3'b000;      
+      end          
+    7'b011_0111:   // lui        
+      begin        
+        alu_a_src      = 1'b0;    // rs1
+        alu_b_src      = 1'b1;    // imm
+        mem_to_reg     = 2'b00;   // data from alu
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b010;  // no branch
+        alu_op         = 4'b1001; // pass through alu_b
+        data_size      = 3'b000;  
+      end       
+    7'b001_0111:   // auipc 
+      begin
+        alu_a_src      = 1'b1;    // pc
+        alu_b_src      = 1'b1;    // imm
+        mem_to_reg     = 2'b00;   // data from alu
+        reg_write_en   = 1'b1;    // write to rd
+        data_read_en   = 1'b0;    // no read from memory
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = 3'b010;  // no branch
+        alu_op         = 4'b0000; // add
+        data_size      = 3'b000;
+      end 
+    7'b110_0011:   // branch             
+      begin
+        alu_a_src      = 1'b1;    //  pc_current  
+        alu_b_src      = 1'b1;    //  ext_imm
+        mem_to_reg     = 2'b00;   // data from alu
+        reg_write_en   = 1'b0;    // no write to rd
+        data_read_en   = 1'b0;    // no read from memory
+        data_write_en  = 1'b0;    // no write to memory
+        branch_cond    = funct3;  // branch condition is encoded to match funct3
+        alu_op         = 4'b0000; // add
+        data_size      = 3'b000;
+      end       
+                 
+                 
+    // Old opcodes - remove eventually
     7'b0000000:  // LD
       begin
         alu_a_src     = 1'b0;     // rs1
@@ -65,7 +173,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;   // no branch
-        alu_op         = 4'b0001;  // sub
+        alu_op         = 4'b1000;  // sub
         data_size      = 3'b000;
       end
     7'b0010000:  // INV
@@ -77,7 +185,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b0010; // inv
+        alu_op         = 4'b1010; // inv
         data_size      = 3'b000;
       end
     7'b0010100:  // LSL
@@ -89,7 +197,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b0011; // lsl
+        alu_op         = 4'b0001; // lsl
         data_size      = 3'b000;
        end
     7'b0011000:  // LSR
@@ -101,7 +209,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b0100; // lsr
+        alu_op         = 4'b0101; // lsr
         data_size      = 3'b000;
       end
     7'b0011100:  // AND
@@ -113,7 +221,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b0101; // and
+        alu_op         = 4'b0111; // and
         data_size      = 3'b000;
       end
     7'b0100000:  // OR
@@ -137,7 +245,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b0111; // slt
+        alu_op         = 4'b0011; // slt
         data_size      = 3'b000;
       end
     7'b0101100:  // BEQ
@@ -185,7 +293,7 @@ module ControlUnit(
         data_read_en   = 1'b0;
         data_write_en  = 1'b0;
         branch_cond    = 3'b010;  // no branch
-        alu_op         = 4'b1000; // lui
+        alu_op         = 4'b1001; // lui
         data_size      = 3'b000;
       end   
     default:    // ADD 
