@@ -1,0 +1,63 @@
+start:
+0         lb	x1, x2(0)             
+4         lh	x1, x2(0)             
+8         lw	x1, x2(0)             
+12        lbu	x1, x2(0)            
+16        lhu	x1, x2(0)            
+20        sb	x0, x2(0)             
+24        sh	x0, x2(0)             
+28        sw	x0, x2(0)             
+32        sb	x31, x2(2047)         
+36        sb	x31, x2(-1)           
+40        sb	x0, x2(-2048)         
+44        add	x1, x2, x3           
+48        sub	x1, x2, x3           
+52        sll	x1, x2, x3           
+56        slt	x1, x2, x3           
+60        sltu	x1, x2, x3          
+64        xor	x1, x2, x3           
+68        srl	x1, x2, x3           
+72        sra	x1, x2, x3           
+76        or	x1, x2, x3            
+80        and	x1, x2, x3           
+84        addi	x1, x2, 0           
+88        slti	x1, x2, 2047        
+92        sltui	x1, x2, 2047       
+96        xori	x1, x2, 2047        
+100       ori	x1, x2, -1           
+104       andi	x1, x2, -1          
+108       slli	x1, x2, 1           
+112       srli	x1, x2, 31          
+116       srai	x1, x2, 31          
+// branches must be even  and ought to be a multiple of 4 really
+// so use even numbers in assembly
+120       beq	x2, x1(2)            
+124       bne	x31, x1(4094)        
+128       blt	x30, x1(2046)        
+132       bge	x30, x1(2046)        
+136       bltu	x31, x1(-2)         
+140       bgeu	x1, x1(-2048)       
+// jal must be even  and ought to be a multiple of 4 really
+// so use even numbers in assembly
+144       jal	x1, 2046             
+148       jal	x1, 524286           
+152       jal	x1, -524288          
+156       jal	x1, -2               
+// jalr can be odd, but when placed into the pc will have the final bit dropped regardless
+160       jalr	x1, x2(-1)          
+164       jalr	x1, x2(1)           
+168       jalr	x1, x2(2047)        
+172       auipc	x1, 524287         
+176       auipc	x1, -1             
+180       lui	x1, 524287           
+184       lui	x1, -1               
+next:
+188       sub	x0, x0, x0           
+192       ld  x3, x0(0)            
+196       ld  x4, x0(4)            
+200       ld  x5, x0(8)            
+204       ld  x1, x3(0)            
+208       ld  x2, x4(0)            
+212       or	x6, x1, x2            
+216       st  x6, x5(0)            
+220       jmp start                

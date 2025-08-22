@@ -110,25 +110,27 @@ def tokenise(txt) :
 
 # Instruction formats
 
-# ld     rd,  rs1(imm)
-# st     rs2, rs1(imm)
+# lw     rd,  rs1(imm)
+# sw     rs2, rs1(imm)
 # add    rd,  rs1, rs2
-# inv    rd,  rs1	
 # beq    rs1, rs2, imm
-# bne    rs1, rs2, imm
-# jmp    imm
+# jal    rd,  imm
+# jalr   rd,  rs1(imm)
 # lui    rd,  imm
+# auipc  rd,  imm
+
 
 # Machine code
 
-# ld   -----imm----- --rs1 xxx --rd- 00000 00
-# st   --imm-- --rs2 --rs1 xxx -imm- 00001 00 
-# add  -func7- --rs2 --rs1 fu3 --rd- 00010 00 
-# inv  -func7- --xxx --rs1 fu3 --rd- 00100 00
-# beq  --imm-- --rs2 --rs1 fu3 -imm- 01011 00 
-# bne  --imm-- --rs2 --rs1 fu3 -imm- 01100 00 
-# jmp    ----------imm-------  --rd- 01101 00 
-# lui    ----------imm-------  --rd- 01110 00 
+# add    -func7- --rs2 --rs1 fu3 --rd- 01100 11 
+# addi   -func7- --rs2 --rs1 fu3 --rd- 00100 11 
+# lw     -----imm----- --rs1 dw- --rd- 00000 11
+# sw     --imm-- --rs2 --rs1 dw- -imm- 01000 11
+# beq    --imm-- --rs2 --rs1 fu3 -imm- 11000 11
+# jalr   -----imm----- --rs1 000 --rd- 11001 11
+# jal      ----------imm-------  --rd- 11011 11
+# lui      ----------imm-------  --rd- 01101 11
+# auipc    ----------imm-------  --rd- 00101 11  
 
 # As written
 
@@ -136,24 +138,38 @@ def tokenise(txt) :
 # add r1,   r2,   r3
 # ld  r1,   r2          (-12)
 
-# ld   -----imm----- --rgB xxx --rgA 00000 00
-# st   --imm-- --rgA --rgB xxx -imm- 00001 00 
-# add  -func7- --rgC --rgB fu3 --rgA 00010 00 
-# inv  -func7- --xxx --rgB fu3 --rgA 00100 00
-# beq  --imm-- --rgB --rgA fu3 -imm- 01011 00 
-# bne  --imm-- --rgB --rgA fu3 -imm- 01100 00 
-# jmp    ----------imm-------  --rgA 01101 00 
-# lui    ----------imm-------  --rgA 01110 00
+# add    -func7- --rgC --rgB fu3 --rgA 01100 11  
+# addi   -func7- --rgC --rgB fu3 --rgA 00100 11
+# lw     -----imm----- --rgB dw- --rgA 00000 11
+# sw     --imm-- --rgA --rgB dw- -imm- 01000 11
+# beq    --imm-- --rgB --rgA fu3 -imm- 11000 11 
+# jalr   -----imm----- --rgB 000 --rdA 11001 11
+# jal      ----------imm-------  --rgA 11011 11
+# lui      ----------imm-------  --rgA 01101 11
+# auipc    ----------imm-------  --rgA 00101 11
 
 def assemble(code):
     result = []
     label_to_line = {}
     line_to_label = {}
     
-    arith_cmds = {"add": 2, "sub": 3, "lsl": 5,
+    old_arith_cmds = {"add": 2, "sub": 3, "lsl": 5,
                   "lsr": 6, "and": 7, "or" : 8,
                   "slt": 9}
+
+    arith_r_cmds = {"add": 0, "sub": 8, "sll": 1,
+                    "slt": 2, "sltu": 3, "xor" : 4,
+                    "srl": 5, "sra": 13, "or": 6 , "and": 7}
+
+    arith_i_cmds = {"addi": 0,  "slti": 2, "sltiu": 3, 
+                    "xori": 4, "ori": 6 , "andi": 7}
+                    
+    arith_i_shift_cmds = {"slli": 1, "srli": 5, "srai": 13}
     
+    load_cmds =    {"lb": 0, "lh": 1, "lw": 2, "lbu": 4, "lhu": 5}
+    store_cmds =   {"sb": 0, "sh": 1, "sw": 2}
+    branch_cmds =  {"beq": 0, "bne": 1, "blt": 4, "bge": 5, "bltu":6, "bgeu": 7}
+        
     # Pass 1 - for labels
     line_number = 0
     for line in code:
@@ -175,7 +191,70 @@ def assemble(code):
             value = label_to_line[jmp_label] - line_number
            
         if cmd:
-            if   cmd == "ld":
+            if   cmd in load_cmds:
+                imm = int_to_twos_complement(value, 12)
+                imm_11_0 = get_bits(imm, 0,  11)
+                dw = load_cmds[cmd]
+                code = f"   {imm_11_0:012b}_{regB:05b}_{dw:03b}_{regA:05b}_00000_11"
+            elif cmd in store_cmds:
+                imm = int_to_twos_complement(value, 12)
+                imm_11_5 = get_bits(imm, 5,  11)
+                imm_4_0  = get_bits(imm, 0,  4)
+                dw = store_cmds[cmd]
+                code = f"  {imm_11_5:07b}_{regA:05b}_{regB:05b}_{dw:03b}_{imm_4_0:05b}_01000_11"
+            elif cmd in arith_r_cmds:
+                val = arith_r_cmds[cmd]
+                func7 = (val >> 3) & 1
+                func3 = val & 7
+                code = f"  0{func7:01b}00000_{regC:05b}_{regB:05b}_{func3:03b}_{regA:05b}_01100_11"
+            elif cmd in arith_i_cmds:
+                imm = int_to_twos_complement(value, 12)
+                imm_11_0 = get_bits(imm, 0,  11) 
+                val = arith_i_cmds[cmd]
+                func7 = (val >> 3) & 1
+                func3 = val & 7
+                code = f"   {imm_11_0:012b}_{regB:05b}_{func3:03b}_{regA:05b}_00100_11"
+            elif cmd in arith_i_shift_cmds:
+                imm = int_to_twos_complement(value, 5)
+                imm_0_4 = get_bits(imm, 0,  4) 
+                val = arith_i_shift_cmds[cmd]
+                func7 = (val >> 3) & 1
+                func3 = val & 7
+                code = f"  0{func7:01b}00000_{imm_0_4:05b}_{regB:05b}_{func3:03b}_{regA:05b}_00100_11"               
+            elif cmd in branch_cmds:
+                #         imm[12]    imm[10:5]      imm[4:1]   imm[11]            per spec
+                # get 13 bit twos complement as we drop the final bit
+                imm = int_to_twos_complement(value, 13)
+                imm_12   = get_bits(imm, 12, 12)
+                imm_10_5 = get_bits(imm, 5,  10)
+                imm_4_1  = get_bits(imm, 1,  4)
+                imm_11   = get_bits(imm, 11, 11)
+                func3 = branch_cmds[cmd]
+                code = f"{imm_12:01b}_{imm_10_5:06b}_{regB:05b}_{regA:05b}_{func3:03b}_{imm_4_1:04b}_{imm_11:01b}_11000_11"
+            elif cmd == "jal":
+                #         imm[20]    imm[10:1]      imm[11]    imm[19:12]         per spec
+                # get 21 bit twos complement as we drop the final bit
+                imm = int_to_twos_complement(value, 21)
+                imm_20    = get_bits(imm, 20, 20)
+                imm_10_1  = get_bits(imm, 1,  10)
+                imm_11    = get_bits(imm, 11, 11)
+                imm_19_12 = get_bits(imm, 12, 19)
+                code = f"  {imm_20:01b}_{imm_10_1:010b}_{imm_11:01b}_{imm_19_12:08b}_{regA:05b}_11011_11"                
+            elif cmd == "jalr":
+                imm = int_to_twos_complement(value, 12)
+                imm_11_0 = get_bits(imm, 0,  11)
+                code = f"   {imm_11_0:012b}_{regB:05b}_000_{regA:05b}_11001_11"
+            elif cmd == "auipc":
+                imm = int_to_twos_complement(value, 20)
+                imm_19_0 = get_bits(imm, 0,  19)
+                code = f"     {imm_19_0:020b}_{regA:05b}_00101_11"
+            elif cmd == "lui":
+                imm = int_to_twos_complement(value, 20)
+                imm_19_0 = get_bits(value, 0,  19)
+                code = f"     {imm_19_0:020b}_{regA:05b}_01101_11"
+                
+            # OLD BITS START HERE 
+            elif   cmd == "ld":
                 imm = int_to_twos_complement(value, 12)
                 imm_11_0 = get_bits(imm, 0,  11)
                 code = f"   {imm_11_0:012b}_{regB:05b}_000_{regA:05b}_0000000"
@@ -216,8 +295,8 @@ def assemble(code):
             elif cmd == "lui":
                 imm = int_to_twos_complement(value, 20)
                 code = f"     {imm:020b}_{regA:05b}_0111000"
-            elif cmd in arith_cmds:		
-                code = f" 000000_0_{regC:05b}_{regB:05b}_000_{regA:05b}_0{arith_cmds[cmd]:04b}00"
+            elif cmd in old_arith_cmds:		
+                code = f" 000000_0_{regC:05b}_{regB:05b}_000_{regA:05b}_0{old_arith_cmds[cmd]:04b}00"
             else:
                 code = "ERROR"
                 
@@ -239,7 +318,7 @@ if len(sys.argv) == 2:
     outname1 = splitname[0] + ".mc"
     outname2 = splitname[0] + ".lmc"
 else:
-    filename = "test_prog.rscin"
+    filename = "risc_test.rscin"
     outname1 = None
     outname2 = None
 

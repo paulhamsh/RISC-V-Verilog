@@ -26,33 +26,34 @@
 # // [start:0]
 # // [start:0]
 #
-#           000000000000_00010_000_00011_0000000
-#           000000000100_00010_000_00001_0000000  // with comment
-# 12      000000_0_00001_00011_000_00010_0001000
-# 12       0000000_00010_00001_000_00000_0000100  // with comment
+#           000000000000_00010_000_00011_00000_11
+#           000000000100_00010_000_00001_00000_11  // with comment
+# 12      000000_0_00001_00011_000_00010_00010_11
+# 12       0000000_00010_00001_000_00000_00001_11  // with comment
 
 # Instruction formats
 
-# ld     rd,  rs1(imm)
-# st     rs2, rs1(imm)
+# lw     rd,  rs1(imm)
+# sw     rs2, rs1(imm)
 # add    rd,  rs1, rs2
-# inv    rd,  rs1	
 # beq    rs1, rs2, imm
-# bne    rs1, rs2, imm
-# jmp    imm
+# jal    rd,  imm
+# jalr   rd,  rs1(imm)
 # lui    rd,  imm
-#             note the imm for lui is the raw 20 bit value, not in its correct position at top 20 bits
+# auipc  rd,  imm
+
 
 # Machine code
 
-# ld   -----imm----- --rs1 xxx --rd- 00000 00
-# st   --imm-- --rs2 --rs1 xxx -imm- 00001 00 
-# add  -func7- --rs2 --rs1 fu3 --rd- 00010 00 
-# inv  -func7- --xxx --rs1 fu3 --rd- 00100 00
-# beq  --imm-- --rs2 --rs1 fu3 -imm- 01011 00 
-# bne  --imm-- --rs2 --rs1 fu3 -imm- 01100 00 
-# jmp    ----------imm-------  --rd- 01101 00 
-# lui    ----------imm-------  --rd- 01110 00 
+# add    -func7- --rs2 --rs1 fu3 --rd- 01100 11 
+# addi   -func7- --rs2 --rs1 fu3 --rd- 00100 11 
+# lw     -----imm----- --rs1 dw- --rd- 00000 11
+# sw     --imm-- --rs2 --rs1 dw- -imm- 01000 11
+# beq    --imm-- --rs2 --rs1 fu3 -imm- 11000 11
+# jalr   -----imm----- --rs1 000 --rd- 11001 11
+# jal      ----------imm-------  --rd- 11011 11
+# lui      ----------imm-------  --rd- 01101 11
+# auipc    ----------imm-------  --rd- 00101 11  
 
 # As written
 
@@ -60,14 +61,15 @@
 # add r1,   r2,   r3
 # ld  r1,   r2          (-12)
 
-# ld   -----imm----- --rgB xxx --rgA 00000 00
-# st   --imm-- --rgA --rgB xxx -imm- 00001 00 
-# add  -func7- --rgC --rgB fu3 --rgA 00010 00 
-# inv  -func7- --xxx --rgB fu3 --rgA 00100 00
-# beq  --imm-- --rgB --rgA fu3 -imm- 01011 00 
-# bne  --imm-- --rgB --rgA fu3 -imm- 01100 00 
-# jmp    ----------imm-------  --rgA 01101 00 
-# lui    ----------imm-------  --rgA 01110 00
+# add    -func7- --rgC --rgB fu3 --rgA 01100 11  
+# addi   -func7- --rgC --rgB fu3 --rgA 00100 11
+# lw     -----imm----- --rgB dw- --rgA 00000 11
+# sw     --imm-- --rgA --rgB dw- -imm- 01000 11
+# beq    --imm-- --rgB --rgA fu3 -imm- 11000 11 
+# jalr   -----imm----- --rgB 000 --rdA 11001 11
+# jal      ----------imm-------  --rgA 11011 11
+# lui      ----------imm-------  --rgA 01101 11
+# auipc    ----------imm-------  --rgA 00101 11
 
 def is_int(s):
     return s.isnumeric() or (s[0] == "-" and s[1:].isnumeric())
@@ -143,9 +145,11 @@ def disassemble(code):
             value = int(line, 2)
 
             opcode = get_bits(value, 0, 6)
+            rd     = get_bits(value, 7, 11)
+            func3  = get_bits(value, 12, 14)
             rs1    = get_bits(value, 15, 19)
             rs2    = get_bits(value, 20, 24)
-            rd     = get_bits(value, 7, 11)
+            func7  = get_bits(value, 25, 31)
            
             #opcode = opcode >> 2 # drop bottom two bits as not needed
             
@@ -170,18 +174,81 @@ def disassemble(code):
             signed_imm_U  = twos_complement_to_int(imm_U, 32)
             signed_imm_J  = twos_complement_to_int(imm_J, 32)
             
-            # base instruction
-            assembly = f"{opcodes_old[opcode >> 2]:3s} "
-
             # and process all the optional registers and value
+
+
+            if   opcode == 0b01100_11:
+                # arithmetic r type
+                arith_r_cmds = ["add", "sll", "slt", "sltu", "xor",
+                                "srl", "or",  "and", "sub",  "",
+                                "",    "",    "",    "sra"]
+                ind = (func7 >> 2) + func3
+                assembly = arith_r_cmds[ind] + "\t"
+                assembly += f"x{rd:d}, x{rs1:d}, x{rs2:d}"
+            elif opcode == 0b00100_11:
+                # arithmetic i type
+                arith_r_cmds = ["addi", "slli", "slti", "sltui", "xori",
+                                "srli", "ori",  "andi", "",  "",
+                                "",    "",    "",    "srai"]
+                # check for the three shift instructions with 5 bit immediate
+                if (func3 == 1 or func3 == 5):
+                    ind = (func7 >> 2) + func3
+                    assembly = arith_r_cmds[ind] + "\t"
+                    assembly += f"x{rd:d}, x{rs1:d}, {imm_I & 31:d}"
+                else:
+                    assembly = arith_r_cmds[func3] + "\t"
+                    assembly += f"x{rd:d}, x{rs1:d}, {signed_imm_I:d}"
+            elif opcode == 0b00000_11:
+                # load
+                load_cmds = ["lb", "lh", "lw", "", "lbu", "lhu"]
+                assembly = load_cmds[func3] + "\t"
+                assembly += f"x{rd:d}, x{rs1:d}({signed_imm_I:d})"                 
+            elif opcode == 0b01000_11:
+                # store
+                store_cmds = ["sb", "sh", "sw"]
+                assembly = store_cmds[func3] + "\t"
+                assembly += f"x{rd:d}, x{rs1:d}({signed_imm_S:d})" 
+            elif opcode == 0b11000_11:
+                # branch
+                branch_cmds = ["beq", "bne", "", "", "blt", "bge", "bltu", "bgeu"]
+                assembly = branch_cmds[func3] + "\t"
+                assembly += f"x{rd:d}, x{rs1:d}({signed_imm_B:d})" 
+            elif opcode == 0b11001_11:
+                # jalr
+                assembly = "jalr" + "\t"
+                assembly += f"x{rd:d}, x{rs1:d}({signed_imm_I:d})"                
+            elif opcode == 0b11011_11:
+                # jal
+
+                ### FIX ME
+                
+                assembly = "jal" + "\t"
+                shift_imm = signed_imm_J 
+                assembly += f"x{rd:d}, {shift_imm:d}"
+                
+            elif opcode == 0b01101_11:
+                # lui
+                assembly = "lui" + "\t"
+                shift_imm = signed_imm_U >> 12
+                assembly += f"x{rd:d}, {shift_imm:d}"    
+            elif opcode == 0b00101_11:
+                # auipc
+                assembly = "auipc" + "\t"
+                shift_imm = signed_imm_U >> 12
+                assembly += f"x{rd:d}, {shift_imm:d}" 
+
+            # old opcode            
             # ld
-            if   opcode == 0b0000_00:
+            elif opcode == 0b0000_00:
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 assembly += f"x{rd:d}, x{rs1:d}({signed_imm_I:d})"
             # st
             elif opcode == 0b0001_00:
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 assembly += f"x{rs2:d}, x{rs1:d}({signed_imm_S:d})"
             # jmp, bne, beq
             elif opcode == 0b1101_00 or opcode == 0b1100_00 or opcode == 0b1011_00:
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 if opcode == 0b1101_00:
                     imm = signed_imm_J  # jump
                 else:
@@ -199,14 +266,17 @@ def disassemble(code):
                     comment += f" {{jump {jump_dest:d}}}" 
             # inv
             elif opcode == 0b0100_00:
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 assembly += f"x{rd:d}, x{rs1:d}"
             # lui
             elif opcode == 0b1110_00:
                 # for LUI just show the base value, not in its real position
                 shift_imm = signed_imm_U >> 12
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 assembly += f"x{rd:d}, {shift_imm:d}"            
             # other arithmetic instructions
             else:
+                assembly = f"{opcodes_old[opcode >> 2]:3s} "
                 assembly += f"x{rd:d}, x{rs1:d}, x{rs2:d}"
 
             # create the output with the assembly plus a comment
@@ -229,7 +299,7 @@ if len(sys.argv) > 1:
     outname2 = splitname[0] +".lrs"
 else:
     #filename = "test1.mc"
-    filename = "test_prog1.mc"
+    filename = "risc_test.mc"
     outname1 = None
 
 f = open(filename, mode='r')
