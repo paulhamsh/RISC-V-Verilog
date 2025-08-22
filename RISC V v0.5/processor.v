@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module Risc32(
   input         clk,
   output [31:0] io_address,
@@ -18,6 +20,7 @@ module Risc32(
   wire       cu_alu_b_src; 
   wire       cu_alu_a_src;
   wire [3:0] cu_alu_op;
+  wire [2:0] cu_imm_type;
 
   
   // Opcode from datapath to control unit
@@ -29,6 +32,7 @@ module Risc32(
   DatapathUnit datapath
   (
     .clk(clk),
+    .imm_type(cu_imm_type),
     .branch_cond(cu_branch_cond),
     .data_read_en(cu_data_read_en),
     .data_write_en(cu_data_write_en),
@@ -54,7 +58,8 @@ module Risc32(
   (
     .opcode(dp_opcode),
     .funct7(dp_funct7),
-    .funct3(dp_funct3),    
+    .funct3(dp_funct3),
+    .imm_type(cu_imm_type),    
     .mem_to_reg(cu_mem_to_reg),
     .alu_op(cu_alu_op),
     .branch_cond(cu_branch_cond),

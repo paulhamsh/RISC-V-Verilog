@@ -1,5 +1,6 @@
 module DatapathUnit(
   input         clk,
+  input  [2:0]  imm_type,
   input  [2:0]  branch_cond,
   input         data_read_en, 
   input         data_write_en, 
@@ -23,12 +24,9 @@ module DatapathUnit(
   
   reg  [31:0] pc_current;
   wire [31:0] pc_next;
-
   wire [31:0] pc_plus_4;
 
   wire        branch_control;
-      
-  wire [31:0] instr;
   
   wire [4:0]  rd;
   wire [31:0] rd_value;
@@ -37,6 +35,7 @@ module DatapathUnit(
   wire [4:0]  rs2;
   wire [31:0] rs2_value;
   
+  wire [31:0] instr;  
   reg  [31:0] ext_imm;
   wire [31:0] alu_b_in;
   wire [31:0] alu_a_in;
@@ -45,7 +44,6 @@ module DatapathUnit(
   wire [31:0] data_read_value;
 
   wire        is_io;
-
   wire [31:0] mem_address;
   wire [31:0] mem_read_value;
   wire [31:0] mem_write_value;
@@ -80,14 +78,11 @@ module DatapathUnit(
   //// Instruction memory
   //// 
     
-  // Instruction memory
   InstructionMemory im
   (
     .pc(pc_current),
     .instruction(instr)
   );
-
-
 
   assign opcode = instr[6:0];
   assign funct3 = instr[14:12];
@@ -96,8 +91,7 @@ module DatapathUnit(
   assign rs1    = instr[19:15];
   assign rs2    = instr[24:20];
   assign rd     = instr[11:7];
-  
-  
+
   //// 
   //// Registers
   ////
@@ -120,7 +114,7 @@ module DatapathUnit(
     .in0(alu_out), 
     .in1(data_read_value),
     .in2(pc_plus_4),
-    .in3(32'd0)           // should never be selected
+    .in3(alu_out)           // should never be selected
     );
 
   // Register allocations
@@ -141,6 +135,17 @@ module DatapathUnit(
   ////
   
   always @(*)
+    case (imm_type)
+       3'd1:    ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // I type (load)
+       3'd2:    ext_imm = { {21{instr[31]}}, instr[30:25], instr[11:8],  instr[7]  };          // S type (store)
+       3'd3:    ext_imm = { {20{instr[31]}}, instr[7],     instr[30:25], instr[11:8],  1'b0};  // B type - effectively making ext_imm the full offset to branch
+       3'd4:    ext_imm = { {12{instr[31]}}, instr[19:12], instr[20],    instr[30:21], 1'b0};  // J type - effectively making ext_imm the full offset to branch 
+       3'd5:    ext_imm = {     instr[31],   instr[30:20], instr[19:12], 12'b0 };              // U type 
+       default: ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // includes R type, does not matter what it is 
+    endcase
+       
+  /*
+  always @(*)
     case (opcode)
       7'b001_0011,
       7'b000_0011,
@@ -158,9 +163,11 @@ module DatapathUnit(
       7'b01100_00:  ext_imm = { {20{instr[31]}}, instr[7],     instr[30:25], instr[11:8],  1'b0};  // B type - effectively making ext_imm the full offset to branch
       7'b01101_00:  ext_imm = { {12{instr[31]}}, instr[19:12], instr[20],    instr[30:21], 1'b0};  // J type - effectively making ext_imm the full offset to branch 
       7'b01110_00:  ext_imm = { instr[31], instr[30:20], instr[19:12], 12'b0 };                    // U type
-
+   
       default:      ext_imm = 32'b0;     // includes R type
     endcase 
+*/
+
   
   // ALU_IN_MUX
   // determine input for alu - either the rs2 value or the extended immediate value
@@ -169,7 +176,6 @@ module DatapathUnit(
     .sel(alu_a_src),
     .out(alu_a_in),
     .in0(rs1_value),
-    //.in1(rs1_value)
     .in1(pc_current)
     );
   

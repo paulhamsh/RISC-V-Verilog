@@ -2,6 +2,7 @@ module ControlUnit(
   input      [6:0] opcode,
   input      [6:0] funct7,
   input      [2:0] funct3,
+  output reg [2:0] imm_type,
   output reg [3:0] alu_op,
   output reg [2:0] branch_cond,
   output reg       data_read_en, 
@@ -19,6 +20,7 @@ module ControlUnit(
     case(opcode) 
     7'b001_0011:   // arithmetic with immediate
       begin
+        imm_type       = 3'd1;    // type I
         alu_a_src      = 1'b0;    // rs1
         alu_b_src      = 1'b1;    // imm
         mem_to_reg     = 2'b00;   // data from alu
@@ -31,6 +33,7 @@ module ControlUnit(
       end
     7'b011_0011:   // arithmetic with registers
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;    // rs1
         alu_b_src      = 1'b0;    // rs2
         mem_to_reg     = 2'b00;   // data from alu
@@ -43,6 +46,7 @@ module ControlUnit(
       end   
     7'b110_0111:   // jalr          
       begin
+        imm_type       = 3'd1;    // type I
         alu_a_src      = 1'b0;    // rs1  
         alu_b_src      = 1'b1;    // ext_imm
         mem_to_reg     = 2'b10;   // pc + 4
@@ -55,6 +59,7 @@ module ControlUnit(
       end    
     7'b110_1111:   // jal   
       begin
+        imm_type       = 3'd4;    // type J
         alu_a_src      = 1'b1;    // pc_current  
         alu_b_src      = 1'b1;    // ext_imm
         mem_to_reg     = 2'b10;   // pc + 4
@@ -67,6 +72,7 @@ module ControlUnit(
       end       
     7'b010_0011:   // store
       begin
+        imm_type      = 3'd2;     // type S
         alu_a_src     = 1'b0;     // rs1
         alu_b_src     = 1'b1;     // ext_imm
         mem_to_reg    = 2'b00;    // data from alu
@@ -79,18 +85,20 @@ module ControlUnit(
       end  
     7'b000_0011:   // load
       begin
-        alu_a_src     = 1'b0;     // rs1
-        alu_b_src     = 1'b1;     // ext_imm
-        mem_to_reg    = 2'b01;    // data from memory
-        reg_write_en  = 1'b1;     // write to rd
-        data_read_en  = 1'b1;     // read from memory
-        data_write_en = 1'b0;     // no write to memory
-        branch_cond   = 3'b010;   // no branch
-        alu_op        = 4'b0000;  // add
-        data_size     = 3'b000;      
+        imm_type       = 3'd1;     // type I
+        alu_a_src      = 1'b0;     // rs1
+        alu_b_src      = 1'b1;     // ext_imm
+        mem_to_reg     = 2'b01;    // data from memory
+        reg_write_en   = 1'b1;     // write to rd
+        data_read_en   = 1'b1;     // read from memory
+        data_write_en  = 1'b0;     // no write to memory
+        branch_cond    = 3'b010;   // no branch
+        alu_op         = 4'b0000;  // add
+        data_size      = 3'b000;      
       end          
     7'b011_0111:   // lui        
       begin        
+        imm_type       = 3'd5;    // type U
         alu_a_src      = 1'b0;    // rs1
         alu_b_src      = 1'b1;    // imm
         mem_to_reg     = 2'b00;   // data from alu
@@ -103,6 +111,7 @@ module ControlUnit(
       end       
     7'b001_0111:   // auipc 
       begin
+        imm_type       = 3'd5;    // type U
         alu_a_src      = 1'b1;    // pc
         alu_b_src      = 1'b1;    // imm
         mem_to_reg     = 2'b00;   // data from alu
@@ -115,6 +124,7 @@ module ControlUnit(
       end 
     7'b110_0011:   // branch             
       begin
+        imm_type       = 3'd3;    // type B
         alu_a_src      = 1'b1;    //  pc_current  
         alu_b_src      = 1'b1;    //  ext_imm
         mem_to_reg     = 2'b00;   // data from alu
@@ -130,6 +140,7 @@ module ControlUnit(
     // Old opcodes - remove eventually
     7'b0000000:  // LD
       begin
+        imm_type      = 3'd1;     // type I
         alu_a_src     = 1'b0;     // rs1
         alu_b_src     = 1'b1;     // ext_imm
         mem_to_reg    = 2'b01;
@@ -142,6 +153,7 @@ module ControlUnit(
       end
     7'b0000100:  // ST
       begin
+        imm_type      = 3'd2;     // type S
         alu_a_src     = 1'b0;     // rs1
         alu_b_src     = 1'b1;     // ext_imm
         mem_to_reg    = 2'b00;
@@ -154,6 +166,7 @@ module ControlUnit(
       end
     7'b0001000:  // ADD
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;    // rs1
         alu_b_src      = 1'b0;    // rs2
         mem_to_reg     = 2'b00;
@@ -166,6 +179,7 @@ module ControlUnit(
       end
     7'b0001100:  // SUB
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -178,6 +192,7 @@ module ControlUnit(
       end
     7'b0010000:  // INV
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -190,6 +205,7 @@ module ControlUnit(
       end
     7'b0010100:  // LSL
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -202,6 +218,7 @@ module ControlUnit(
        end
     7'b0011000:  // LSR
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -214,6 +231,7 @@ module ControlUnit(
       end
     7'b0011100:  // AND
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -226,6 +244,7 @@ module ControlUnit(
       end
     7'b0100000:  // OR
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -238,6 +257,7 @@ module ControlUnit(
       end
     7'b0100100:  // SLT
       begin
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
@@ -250,6 +270,7 @@ module ControlUnit(
       end
     7'b0101100:  // BEQ
       begin
+        imm_type       = 3'd3;    // type B
         alu_a_src      = 1'b1;   //  pc_current
         alu_b_src      = 1'b1;   //  ext_imm
         mem_to_reg     = 2'b00;
@@ -262,6 +283,7 @@ module ControlUnit(
       end
     7'b0110000:  // BNE
       begin
+        imm_type       = 3'd3;    // type B
         alu_a_src      = 1'b1;   //  pc_current
         alu_b_src      = 1'b1;   //  ext_imm
         mem_to_reg     = 2'b00;
@@ -274,6 +296,7 @@ module ControlUnit(
       end
     7'b0110100:  // JMP
       begin
+        imm_type       = 3'd4;    // type J
         alu_a_src      = 1'b1;   //  pc_current  
         alu_b_src      = 1'b1;   //  ext_imm
         mem_to_reg     = 2'b00;
@@ -286,6 +309,7 @@ module ControlUnit(
       end   
     7'b0111000:  // LUI
       begin
+        imm_type       = 3'd5;    // type U
         alu_a_src      = 1'b0;    // rs1
         alu_b_src      = 1'b1;    // ext_imm
         mem_to_reg     = 2'b00;
@@ -296,8 +320,11 @@ module ControlUnit(
         alu_op         = 4'b1001; // lui
         data_size      = 3'b000;
       end   
+      
+      
     default:    // ADD 
       begin 
+        imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;
         alu_b_src      = 1'b0;
         mem_to_reg     = 2'b00;
