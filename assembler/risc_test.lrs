@@ -1,0 +1,55 @@
+start:
+0         lb	x1, x2(0)             
+4         lh	x1, x2(0)             
+8         lw	x1, x2(0)             
+12        lbu	x1, x2(0)            
+16        lhu	x1, x2(0)            
+20        lhu	x1, x2(0)            
+24        sb	x0, x2(0)             
+28        sh	x0, x2(0)             
+32        sw	x0, x2(0)             
+36        sb	x31, x2(2047)         
+40        sb	x31, x2(2047)         
+44        sb	x31, x2(-1)           
+48        sb	x0, x2(-2048)         
+52        add	x1, x2, x3           
+56        sub	x1, x2, x3           
+60        sll	x1, x2, x3           
+64        slt	x1, x2, x3           
+68        sltu	x1, x2, x3          
+72        xor	x1, x2, x3           
+76        srl	x1, x2, x3           
+80        sra	x1, x2, x3           
+84        or	x1, x2, x3            
+88        and	x1, x2, x3           
+92        addi	x1, x2, 0           
+96        slti	x1, x2, 2047        
+100       sltiu	x1, x2, 2047       
+104       xori	x1, x2, 2047        
+108       ori	x1, x2, -1           
+112       andi	x1, x2, -1          
+116       slli	x1, x2, 1           
+120       srli	x1, x2, 1           
+124       srai	x1, x2, 1           
+// branches must be even  and ought to be a multiple of 4 really
+// so use even numbers in assembly
+128       beq	x2, x2(2)            
+132       bne	x31, x3(4094)        
+136       blt	x30, x3(2046)        
+140       bge	x30, x3(2046)        
+144       bltu	x31, x3(-2)         
+148       bgeu	x1, x1(-2048)       
+// jal must be even  and ought to be a multiple of 4 really
+// so use even numbers in assembly
+152       jal	x1, 2046             
+156       jal	x1, 524286           
+160       jal	x1, -524288          
+164       jal	x1, -2               
+// jalr can be odd, but when placed into the pc will have the final bit dropped regardless
+168       jalr	x1, x2(-1)          
+172       jalr	x1, x2(1)           
+176       jalr	x1, x2(2047)        
+180       auipc	x1, 524287         
+184       auipc	x1, -1             
+188       lui	x1, 524287           
+192       lui	x1, -1               
