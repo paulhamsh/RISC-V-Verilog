@@ -212,7 +212,7 @@ def disassemble(code):
                 # branch
                 branch_cmds = ["beq", "bne", "", "", "blt", "bge", "bltu", "bgeu"]
                 assembly = branch_cmds[func3] + "\t"
-                assembly += f"x{rd:d}, {signed_imm_B:d}(x{rs1:d})" 
+                assembly += f"x{rd:d}, x{rs1:d}, {signed_imm_B:d}" 
             elif opcode == 0b11001_11:
                 # jalr
                 assembly = "jalr" + "\t"
