@@ -1,5 +1,27 @@
 `timescale 1ns / 1ps
 
+
+`define set_reg(r, v)       uut.datapath.reg_file.reg_array[r] <= v
+`define set_memb(a, v)      uut.datapath.dm.memory[a] <= v
+`define set_pc(a)           uut.datapath.pc_current <= v
+`define show_state          $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode )
+`define tick                clk = ~clk; #5
+`define clock_up            clk = 1; #5
+`define clock_down          clk = 0; #5
+`define run_step            `clock_down; `show_state; `clock_up
+`define show_reg(r)         $display("\tx%1d:   %8h", r, uut.datapath.reg_file.reg_array[r])
+`define show_memb(a)        $display("\tmemb[%1d]:   %2h", a, uut.datapath.dm.memory[a])
+`define show_pcnext         $display("\tpc_next: %8h", uut.datapath.pc_next)
+`define check_pcnext(v, m)  if (uut.datapath.pc_next != v) $error(m)
+`define check_reg(r, v, m)  if (uut.datapath.reg_file.reg_array[r] != v) $error(m)
+`define check_memb(a, v, m) if (uut.datapath.dm.memory[a] != v) $error(m)
+`define check_memw(a, v, m) if (! (uut.datapath.dm.memory[a]   == v[7:0])   && \
+                                  uut.datapath.dm.memory[a+1]  == v[15:8])  && \
+                                  uut.datapath.dm.memory[a+2]  == v[23:16]  && \
+                                  uut.datapath.dm.memory[a+3]  == v[31:24]))     $error(m)
+
+
+
 module test_RISC32;
 
   // Inputs
@@ -15,8 +37,8 @@ module test_RISC32;
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
 //`define PROG_BASIC 
-//`define PROG_STEPPED
-`define PROG_INDIV
+`define PROG_STEPPED
+//`define PROG_INDIV
 
 `ifdef PROG_BASIC
   initial 
@@ -40,146 +62,86 @@ module test_RISC32;
 
   always 
     begin
+      #10;
       $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes, `data_bytes);
-      #5;
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h0001) $error("LD failure");
       
-      clk = 0;
-      #5;        
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx1:   %8h", uut.datapath.reg_file.reg_array[1]);
-      if (uut.datapath.reg_file.reg_array[1] != 32'h0002) $error("LD failure");
- 
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0003) $error("ADD failure");
+      `run_step;
+      `show_reg(3);
+      `check_reg(3, 32'h0001, "ldw fail");
+     
+      `run_step;
+      `show_reg(1);
+      `check_reg(1, 32'h0002, "ldw fail");
       
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tmem[4]:   %2h", uut.datapath.dm.memory[4]);
-      if (! (uut.datapath.dm.memory[4] == 8'h3 && uut.datapath.dm.memory[5] == 8'h0 && uut.datapath.dm.memory[6] == 8'h0 && uut.datapath.dm.memory[7] == 8'h0)) $error("ST failure");  
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'hffffffff) $error("SUB failure");     
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'hfffffffe) $error("INV failure");  
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0004) $error("LSL failure");        
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'h0003, "add fail");
 
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0000) $error("LSR failure");   
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0000) $error("AND failure");   
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0003) $error("OR failure");  
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx2:   %8h", uut.datapath.reg_file.reg_array[2]);
-      if (uut.datapath.reg_file.reg_array[2] != 32'h0001) $error("SLT failure");                     
+      `run_step;    
+      `show_memb(4);
+      `check_memb(4, 8'h03, "stw fail");
+      //`check_memw(4, 32'h0000_0003, "stw fail");
 
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h0002) $error("ADD failure");  
- 
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h1000) $error("LUI failure");  
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'hffff_ffff, "sub fail");
+                  
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'hffff_fffe, "xori fail");
+
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'h0000_0004, "sll fail");
       
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h0000_1034) $error("AUIPC failure");  
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'h0000_0000, "srl fail");
       
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      $display("\tbranch_control: %1b", uut.datapath.branch_control);
-      $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h3c) $error("BEQ failure");  
-      clk = 1;
-      #5;
-            
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      $display("\tbranch_control: %1b", uut.datapath.branch_control);
-      $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h44) $error("BNE failure");  
-      clk = 1;
-      #5;
-            
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      $display("\tbranch_control: %1b", uut.datapath.branch_control);
-      $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h10) $error("JMP failure - pc");    
-      clk = 1;
-      #5;
-      $display("\tx1     : %8h", uut.datapath.reg_file.reg_array[1]);
-      if (uut.datapath.reg_file.reg_array[1] != 32'h0048) $error("JMP failure - x1");   
+      `run_step; 
+      `show_reg(2);
+      `check_reg(2, 32'h0000_0000, "and fail");
+  
+      `run_step; 
+      `show_reg(2);
+      `check_reg(2, 32'h0000_0003, "or fail");    
+
+      `run_step;
+      `show_reg(2);
+      `check_reg(2, 32'h0000_0001, "slt fail");  
+
+      `run_step;
+      `show_reg(3);
+      `check_reg(3, 32'h0000_0002, "add fail");  
+
+      `run_step; 
+      `show_reg(3);
+      `check_reg(3, 32'h0000_1000, "lui fail");  
+
+      `run_step; 
+      `show_reg(3);
+      `check_reg(3, 32'h0000_1034, "auipc fail"); 
+
+      // these are more complex because we want to check pc_next
+      `clock_down;
+      `show_state;
+      `show_pcnext;
+      `check_pcnext(32'h0000_003c, "beq fail"); 
+      `clock_up;     
+    
+      `clock_down;
+      `show_state;
+      `show_pcnext;
+      `check_pcnext(32'h0000_0044, "bne fail"); 
+      `clock_up;    
+
+      `clock_down;
+      `show_state;
+      `show_pcnext;
+      `check_pcnext(32'h0000_0010, "jalr fail - jump"); 
+      `clock_up;    
+      `show_reg(1);
+      `check_reg(1, 32'h0000_0048, "jalr fail - store return address");       
 
       #20;
       $finish;
@@ -194,7 +156,6 @@ module test_RISC32;
    always 
      begin
        $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `data_bytes);
-       $display("--------------------------------------------------");
        
        // Test 1 - lw x1, [0 + x2]       
        clk = 0;

@@ -19,6 +19,8 @@ module ControlUnit(
   begin
     case(opcode) 
     7'b001_0011:   // arithmetic with immediate
+                   // only need funct7 when funct 3 is 3'b101 (srli / srai) 
+                   // could also include for 3'b001 (slli)
       begin
         imm_type       = 3'd1;    // type I
         alu_a_src      = 1'b0;    // rs1
@@ -28,10 +30,12 @@ module ControlUnit(
         data_read_en   = 1'b0;    // no read from memory 
         data_write_en  = 1'b0;    // no write to memory
         branch_cond    = 3'b010;  // no branch
-        alu_op         = {funct7[5], funct3};   // alu_op has been encoded to match this
+        alu_op         = {funct3 == 3'b101 ? funct7[5] : 0, funct3};   // alu_op has been encoded to match this
         data_size      = 3'b000;
       end
     7'b011_0011:   // arithmetic with registers
+                   // funct7 encoded for all alu_op operations 
+                   // even if only used for 3'b101 and 3'b000 (add/sub and srl/sra)
       begin
         imm_type       = 3'd0;    // type R
         alu_a_src      = 1'b0;    // rs1

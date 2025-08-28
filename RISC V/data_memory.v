@@ -28,31 +28,16 @@ module DataMemory(
 
   always @(posedge clk) begin
     if (mem_write_en)
-      case (mem_data_size)
-        3'b000:                      // sb
+      begin
+        memory[ram_addr] <= mem_in[7:0];             // always write one byte
+        if (mem_data_size[0])                        // if mem_data_size == 3'b001 then write second byte
+          memory[ram_addr + 1] <= mem_in[15:8];      
+        if (mem_data_size[1])                        // if mem_data_size == 3'b010 then write second byte
           begin
-            memory[ram_addr]     <= mem_in[7:0];
-          end     
-         3'b001:                     // sh
-          begin
-            memory[ram_addr]     <= mem_in[7:0];
-            memory[ram_addr + 1] <= mem_in[15:8];
-          end      
-        3'b010:                      // sw
-          begin
-            memory[ram_addr]     <= mem_in[7:0];
-            memory[ram_addr + 1] <= mem_in[15:8];
             memory[ram_addr + 2] <= mem_in[23:16];
-            memory[ram_addr + 3] <= mem_in[31:24];           
+            memory[ram_addr + 3] <= mem_in[31:24]; 
           end
-        default:
-          begin
-            memory[ram_addr]     <= mem_in[7:0];
-            memory[ram_addr + 1] <= mem_in[15:8];
-            memory[ram_addr + 2] <= mem_in[23:16];
-            memory[ram_addr + 3] <= mem_in[31:24];
-          end
-      endcase
+      end
   end
   
   //reg [31:0] data;  
