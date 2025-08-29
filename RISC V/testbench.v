@@ -1,25 +1,49 @@
 `timescale 1ns / 1ps
 
+`define get_31_24(v)         ((v & 32'hff00_0000) >> 24)
+`define get_23_16(v)         ((v & 32'h00ff_0000) >> 16)
+`define get_15_8(v)          ((v & 32'h0000_ff00) >> 8)
+`define get_7_0(v)            (v & 32'h0000_00ff)
+
+`define make_word(v1, v2, v3,v4)    {v1, v2, v3, v4}
+`define make_half(v1, v2)           {v1, v2}
+
+`define memb(a)             uut.datapath.dm.memory[a]
+`define set_memb(a, v)      `memb(a) <= v
+`define set_memw(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v); `memb(a+2) <= `get_23_16(v); `memb(a+3) <= `get_31_24(v)
+
+
 
 `define set_reg(r, v)       uut.datapath.reg_file.reg_array[r] <= v
-`define set_memb(a, v)      uut.datapath.dm.memory[a] <= v
-`define set_pc(a)           uut.datapath.pc_current <= v
+`define set_pc(a)           uut.datapath.pc_current <= a
+`define set_instr(a, v)     uut.datapath.im.memory[a] <= v
+
 `define show_state          $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode )
+
 `define tick                clk = ~clk; #5
 `define clock_up            clk = 1; #5
 `define clock_down          clk = 0; #5
 `define run_step            `clock_down; `show_state; `clock_up
-`define show_reg(r)         $display("\tx%1d:   %8h", r, uut.datapath.reg_file.reg_array[r])
-`define show_memb(a)        $display("\tmemb[%1d]:   %2h", a, uut.datapath.dm.memory[a])
-`define show_pcnext         $display("\tpc_next: %8h", uut.datapath.pc_next)
-`define check_pcnext(v, m)  if (uut.datapath.pc_next != v) $error(m)
-`define check_reg(r, v, m)  if (uut.datapath.reg_file.reg_array[r] != v) $error(m)
-`define check_memb(a, v, m) if (uut.datapath.dm.memory[a] != v) $error(m)
-`define check_memw(a, v, m) if (! (uut.datapath.dm.memory[a]   == v[7:0])   && \
-                                  uut.datapath.dm.memory[a+1]  == v[15:8])  && \
-                                  uut.datapath.dm.memory[a+2]  == v[23:16]  && \
-                                  uut.datapath.dm.memory[a+3]  == v[31:24]))     $error(m)
 
+`define show_reg(r)         $display("\tx%1d:   %8h", r, uut.datapath.reg_file.reg_array[r])
+`define show_memb(a)        $display("\tmemb[%1d]:   %2h", a,  `memb(a))
+`define show_memh(a)        $display("\tmemh{%1d]:   %4h", a, `make_half(`memb(a+1), `memb(a)) )
+`define show_memw(a)        $display("\tmemw{%1d]:   %8h", a, `make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) ) 
+`define show_pcnext         $display("\tpc_next: %8h", uut.datapath.pc_next)
+`define show_pc             $display("\tpc: %8h", uut.datapath.pc_current)
+
+`define check_pcnext(v, em, sm)  if (uut.datapath.pc_next != v) $error(em); else $display(sm)
+`define check_pc(v, em, sm)      if (uut.datapath.pc_current != v) $error(em); else $display(sm)
+`define check_reg(r, v, em, sm)  if (uut.datapath.reg_file.reg_array[r] != v) $error(em); else $display(sm)
+`define check_memb(a, v, em, sm) if (uut.datapath.dm.memory[a] != v) $error(em); else $display(sm)
+
+/*
+`define check_memw(a, v, em, sm) if (!(`memb(a)   == `get_7_0(v) && \
+                                  `memb(a+1) == `get_15_8(v) && \
+                                  `memb(a+2) == `get_23_16(v) && \
+                                  `memb(a+3) == `get_31_24(v))) $error(em); else $display(sm)
+*/
+`define check_memw(a, v, em, sm) if (`make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) != v) $error(em); else $display(sm)
 
 
 module test_RISC32;
@@ -37,8 +61,8 @@ module test_RISC32;
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
 //`define PROG_BASIC 
-`define PROG_STEPPED
-//`define PROG_INDIV
+//`define PROG_STEPPED
+`define PROG_INDIV
 
 `ifdef PROG_BASIC
   initial 
@@ -67,81 +91,82 @@ module test_RISC32;
       
       `run_step;
       `show_reg(3);
-      `check_reg(3, 32'h0001, "ldw fail");
+      `check_reg(3, 32'h0001, "ldw fail", "ldw success");
      
       `run_step;
       `show_reg(1);
-      `check_reg(1, 32'h0002, "ldw fail");
+      `check_reg(1, 32'h0002, "ldw fail", "ldw success");
       
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'h0003, "add fail");
+      `check_reg(2, 32'h0003, "add fail", "add success");
 
       `run_step;    
-      `show_memb(4);
-      `check_memb(4, 8'h03, "stw fail");
-      //`check_memw(4, 32'h0000_0003, "stw fail");
+      `show_memw(4);
+      `check_memw(4, 32'h0000_0003, "stw fail", "stw success");
 
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'hffff_ffff, "sub fail");
+      `check_reg(2, 32'hffff_ffff, "sub fail", "sub success");
                   
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'hffff_fffe, "xori fail");
+      `check_reg(2, 32'hffff_fffe, "xori fail", "xori success");
 
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'h0000_0004, "sll fail");
+      `check_reg(2, 32'h0000_0004, "sll fail", "sll success");
       
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'h0000_0000, "srl fail");
+      `check_reg(2, 32'h0000_0000, "srl fail", "srl success");
       
       `run_step; 
       `show_reg(2);
-      `check_reg(2, 32'h0000_0000, "and fail");
+      `check_reg(2, 32'h0000_0000, "and fail", "and success");
   
       `run_step; 
       `show_reg(2);
-      `check_reg(2, 32'h0000_0003, "or fail");    
+      `check_reg(2, 32'h0000_0003, "or fail", "or success");    
 
       `run_step;
       `show_reg(2);
-      `check_reg(2, 32'h0000_0001, "slt fail");  
+      `check_reg(2, 32'h0000_0001, "slt fail", "slt success");  
 
       `run_step;
       `show_reg(3);
-      `check_reg(3, 32'h0000_0002, "add fail");  
+      `check_reg(3, 32'h0000_0002, "add fail", "add success");  
 
       `run_step; 
       `show_reg(3);
-      `check_reg(3, 32'h0000_1000, "lui fail");  
+      `check_reg(3, 32'h0000_1000, "lui fail", "lui success");  
 
       `run_step; 
       `show_reg(3);
-      `check_reg(3, 32'h0000_1034, "auipc fail"); 
+      `check_reg(3, 32'h0000_1034, "auipc fail", "auipc success"); 
 
-      // these are more complex because we want to check pc_next
-      `clock_down;
-      `show_state;
-      `show_pcnext;
-      `check_pcnext(32'h0000_003c, "beq fail"); 
-      `clock_up;     
-    
-      `clock_down;
-      `show_state;
-      `show_pcnext;
-      `check_pcnext(32'h0000_0044, "bne fail"); 
-      `clock_up;    
+      `run_step;
+      `show_pc;
+      `check_pc(32'h0000_003c, "beq fail", "beq success");
+       
+      `run_step;
+      `show_pc;
+      `check_pc(32'h0000_0044, "bne fail", "bne success"); 
 
-      `clock_down;
-      `show_state;
-      `show_pcnext;
-      `check_pcnext(32'h0000_0010, "jalr fail - jump"); 
-      `clock_up;    
+      `run_step;
+      `show_pc;  
+      `check_pc(32'h0000_0010, "jalr fail - jump", "jalr success - jump"); 
       `show_reg(1);
-      `check_reg(1, 32'h0000_0048, "jalr fail - store return address");       
+      `check_reg(1, 32'h0000_0048, "jalr fail - store return address", "jalr success - store return address");   
+
+      // can check it like this
+      //`clock_down;
+      //`show_state;
+      //`show_pcnext;
+      //`check_pcnext(32'h0000_0010, "jalr fail - jump"); 
+      //`clock_up;    
+      //`show_reg(1);
+      //`check_reg(1, 32'h0000_0048, "jalr fail - store return address");       
 
       #20;
       $finish;
@@ -155,210 +180,132 @@ module test_RISC32;
     
    always 
      begin
+       #10;
        $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `data_bytes);
        
-       // Test 1 - lw x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_010_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_010_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h7f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h7f;
-       uut.datapath.dm.memory[6] <= 8'h00;
-       uut.datapath.dm.memory[7] <= 8'h00;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h0000_7f7f) $error("lw failure"); else $display("Success");
+       // Test lw x1, [0 + x2]       
+       // Objective - show that a memory word load works
+       //                lw rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_010_++rd+_++op+++ 
+       `set_pc(0);
+       `set_instr(0, 32'b000000000000_00010_010_00001_0000011);
+       `set_memw(4, 32'h0000_7f7f);
+       `set_reg(2, 32'h0004);                            // x2 = 4
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h0000_7f7f, "lw failure", "lw succcess");
+
+       // Test add x3, x1, x2
+       // Objective - show that add of hfff and 1 is h1000
+       //                add rd, rs1, rs2
+       //                +func7+_+rs2+_+rs1+_fu3_++rd+_+++op++ 
+       `set_pc(0);
+       `set_instr(0, 32'b0000000_00010_00001_000_00011_0110011); 
+       `set_reg(1, 32'h0001);    
+       `set_reg(2, 32'h0fff);    
+       `set_reg(3, 32'h2222);    
+       `run_step;
+       `show_reg(3);
+       `check_reg(3, 32'h0000_1000, "add failure", "add succcess");
+
+       // Test lui x1, h55555
+       // Objective - show that lui loads the upper 20 bits
+       //                lui rd, imm
+       //                ++++++++++imm+++++++_++rd+_+++op++ 
+       `set_pc(0);
+       `set_instr(0, 32'b01010101010101010101_00001_0110111); 
+       `set_reg(1, 32'h0000_0000);    
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h5555_5000, "lui failure", "lui succcess");
+
+       // Test memory wrap - lw x1, x2(0)   (128) should wrap to 0
+       // Objective - show that accessing the word *above* the last word in memory wraps to 0
+       //                lw rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_xxx_++rd+_++op+++  
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_010_00001_0000011); 
+       `set_memw(0, 32'h7f7f_f7f7);
+       `set_memw(124, 32'h8888_8888);     
+       `set_reg(2, 32'd128);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h7f7f_f7f7, "lw memory wrap failure", "lw memory wrap succcess");
+       
+       // Test memory top - lw x1, x2(0)    (124)
+       // Objective - show that a read from last word in memory works
+       //                lw rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_010_++rd+_++op+++  
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_010_00001_0000011);
+       `set_memw(0, 32'h7f7f_f7f7);
+       `set_memw(124, 32'h8888_8888);     
+       `set_reg(2, 32'd124);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h8888_8888, "lw memory top failure", "lw memory top succcess");
  
+       // Test lh x1, [0 + x2]       
+       // Objective - show lh does not retrieve the higher two bytes but sets to zeo
+       //                lh rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_001_++rd+_++op+++ 
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_001_00001_0000011);
+       `set_memw(0, 32'h7f7f_7f7f); 
+       `set_reg(2, 32'h0004);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h0000_7f7f, "lh failure", "lh succcess");
 
-       // Test 2 - add x3, x1, x2
-       clk = 0;
-       #5;
-       uut.datapath.pc_current = 0;
-       //                               add rd, rs1, rs2
-       //                               +func7+_+rs2+_+rs1+_fu3_++rd+_+++op++ 
-       uut.datapath.im.memory[0] <= 32'b0000000_00010_00001_000_00011_0110011; 
-       uut.datapath.reg_file.reg_array[1] <= 32'h0001;           // R1 = 0001
-       uut.datapath.reg_file.reg_array[2] <= 32'h0fff;           // R2 = 0fff
-       uut.datapath.reg_file.reg_array[3] <= 32'h2222;           // R3 = 2222
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx3:   %08h", uut.datapath.reg_file.reg_array[3]);
-       if (uut.datapath.reg_file.reg_array[3] != 32'h1000) $error("add failure"); else $display("Success");
+       // Test lb x1, [0 + x2]   
+       // Objective - show lb does not sign extend when top bit is 0 (ok, it does - but sign extends 0)
+       //                lb rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_000_++rd+_++op+++ 
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_000_00001_0000011);
+       `set_memw(0, 32'h7f7f_7f7f); 
+       `set_reg(2, 32'h0004);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h0000_007f, "lb (7f) failure", "lb (7f) succcess");
  
-
-       // Test 3 - lui x1, h55555
-       clk = 0;
-       #5;
-       uut.datapath.pc_current = 0;
-       //                               lui rd, imm
-       //                               ++++++++++imm+++++++_++rd+_+++op++ 
-       uut.datapath.im.memory[0] <= 32'b01010101010101010101_00001_0110111; 
-       uut.datapath.reg_file.reg_array[1] <= 32'h0000_0000;           
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h5555_5000) $error("lui failure"); else $display("Success");
-
-
-       // Test 5 - memory wrap - lw x1, x2(0)   (128) should wrap to 0
-       clk = 0;
-       #5;
-       uut.datapath.pc_current = 0;
-       //                                ld rd, rs1(ext_imm)
-       //                                +++imm++++++_+rs1+_xxx_++rd+_++op+++  
-       uut.datapath.im.memory[0]   <= 32'b000000000000_00010_010_00001_0000011; 
-       uut.datapath.dm.memory[0]   <= 8'h7f;                        // Mem[0]   = f7f7_7f7f  - byte address 0
-       uut.datapath.dm.memory[1]   <= 8'h7f;
-       uut.datapath.dm.memory[2]   <= 8'hf7;
-       uut.datapath.dm.memory[3]   <= 8'hf7;
-       uut.datapath.dm.memory[124] <= 8'h88;                        // Mem[124] = 8888_8888  - byte address 124
-       uut.datapath.dm.memory[125] <= 8'h88; 
-       uut.datapath.dm.memory[126] <= 8'h88;
-       uut.datapath.dm.memory[127] <= 8'h88;                
-       uut.datapath.reg_file.reg_array[2] <= 32'd128;             // x2 = 128 (should wrap to 0)
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'hf7f7_7f7f) $error("lw failure"); else $display("Success");
-
-       // Test 6 - memory wrap - lw x1, x2(0)    (124)
-       clk = 0;
-       #5;
-       uut.datapath.pc_current = 0;
-       //                                ld rd, rs1(ext_imm)
-       //                                +++imm++++++_+rs1+_010_++rd+_++op+++  
-       uut.datapath.im.memory[0]  <= 32'b000000000000_00010_010_00001_0000011; 
-       uut.datapath.dm.memory[0]   <= 8'h7f;                        // Mem[0]   = f7f7_7f7f  - byte address 0
-       uut.datapath.dm.memory[1]   <= 8'h7f;
-       uut.datapath.dm.memory[2]   <= 8'h7f;
-       uut.datapath.dm.memory[3]   <= 8'h7f;
-       uut.datapath.dm.memory[124] <= 8'h88;                        // Mem[124] = 8888_8888  - byte address 124
-       uut.datapath.dm.memory[125] <= 8'h88; 
-       uut.datapath.dm.memory[126] <= 8'h88;
-       uut.datapath.dm.memory[127] <= 8'h88; 
-       uut.datapath.reg_file.reg_array[2] <= 32'd124;             // x2 = 124 
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h8888_8888) $error("lw failure"); else $display("Success");
-
-       // Test 7 - lh x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_001_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_001_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h7f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h7f;
-       uut.datapath.dm.memory[6] <= 8'h7f;
-       uut.datapath.dm.memory[7] <= 8'h7f;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h0000_7f7f) $error("lh failure"); else $display("Success");
-
-       // Test 8 - lb x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_000_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_000_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h7f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h7f;
-       uut.datapath.dm.memory[6] <= 8'h7f;
-       uut.datapath.dm.memory[7] <= 8'h7f;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h0000_007f) $error("lbh failure"); else $display("Success");
-
-       // Test 9 - lb x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_000_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_000_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h8f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h77;
-       uut.datapath.dm.memory[6] <= 8'h77;
-       uut.datapath.dm.memory[7] <= 8'h77;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'hffff_ff8f) $error("lbh failure"); else $display("Success");
-
-       // Test 10 - lhu x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_101_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_101_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h8f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h8f;
-       uut.datapath.dm.memory[6] <= 8'h77;
-       uut.datapath.dm.memory[7] <= 8'h77;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h0000_8f8f) $error("lbh failure"); else $display("Success");
-
-       // Test sh - sh x1, [0 + x2]       
-       clk = 0;
-       #5;     
-       uut.datapath.pc_current = 0;
-       //                               sh rs2, rs1(ext_imm)
-       //                               +++imm+_+rs2+_+rs1+_001_+imm+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b0000000_00001_00010_001_00000_0100011; 
-       uut.datapath.dm.memory[4] <= 8'h8f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h8f;
-       uut.datapath.dm.memory[6] <= 8'h77;
-       uut.datapath.dm.memory[7] <= 8'h77;
-       uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
-       uut.datapath.reg_file.reg_array[1] <= 32'h9999_9999;
-       #10;
-       $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-       clk = 1;
-       #5;
-       $display("\tmem[4]:   %02h", uut.datapath.dm.memory[4]);
-       $display("\tmem[5]:   %02h", uut.datapath.dm.memory[5]);       
-       $display("\tmem[6]:   %02h", uut.datapath.dm.memory[6]);
-       $display("\tmem[7]:   %02h", uut.datapath.dm.memory[7]);       
-       if (uut.datapath.dm.memory[4] != 8'h99) $error("sh failure"); else $display("Success");
-       if (uut.datapath.dm.memory[5] != 8'h99) $error("sh failure"); else $display("Success");
-       if (uut.datapath.dm.memory[6] != 8'h77) $error("sh failure"); else $display("Success");
-       if (uut.datapath.dm.memory[6] != 8'h77) $error("sh failure"); else $display("Success");
-
+       // Test lb x1, [0 + x2]       
+       // Objective - show lb does sign extend when top bit is 1
+       //                lb rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_000_++rd+_++op+++ 
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_000_00001_0000011);
+       `set_memw(4, 32'h7777_778f); 
+       `set_reg(2, 32'h0004);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'hffff_ff8f, "lb (8f) failure", "lb (8f) succcess");       
+       
+       // Test lhu x1, [0 + x2]         
+       // Objective - show lhu does not sign extend the half-word on load
+       //                lhu rd, rs1(ext_imm)
+       //                +++imm++++++_+rs1+_101_++rd+_++op+++
+       `set_pc(0);                                            
+       `set_instr(0, 32'b000000000000_00010_101_00001_0000011);
+       `set_memw(4, 32'h7777_8f8f); 
+       `set_reg(2, 32'h0004);  
+       `run_step;
+       `show_reg(1);
+       `check_reg(1, 32'h0000_8f8f, "lhu failure", "lhu succcess");       
+ 
+       // Test sh x1, [0 + x2]       
+       // Objective - show sh only updates lower two bytes in memory
+       //                sh rs2, rs1(ext_imm)
+       //                +++imm+_+rs2+_+rs1+_001_+imm+_++op+++ 
+       `set_pc(0);                                            
+       `set_instr(0, 32'b0000000_00001_00010_001_00000_0100011);
+       `set_memw(4, 32'h7777_8f8f); 
+       `set_reg(2, 32'h0004);  
+       `set_reg(1, 32'h9999_9999);  
+       `run_step;
+       `show_memw(4);
+       `check_memw(4, 32'h7777_9999, "sh failure", "sh succcess");   
+       
        #20;
        $finish;
      end
