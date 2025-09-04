@@ -13,7 +13,6 @@ module top(
   wire        io_write_en;
   wire        io_read_en;   
   wire [2:0]  io_data_size;
-  
 
   Risc32 risc(
     .clk(CLK100MHZ),
@@ -24,28 +23,20 @@ module top(
     .io_read_en(io_read_en),
     .io_data_size(io_data_size)
     );
+ 
+   always @(posedge CLK100MHZ)
+      begin
   
-  always @(posedge CLK100MHZ)
-    begin
-
-      if (io_read_en)
-        case (io_address)
-          32'b01:  io_read_value <= {16'b0, SW};
-          32'b10:  io_read_value <= {16'b0, BTN, 11'b0};
-          default: io_read_value <= 32'b0;
-        endcase
-      
-      /*
-      if (io_read_en && io_address[1])
-        io_read_value <= {BTN, 11'b0};
-     
-      if (io_read_en && io_address[0])
-        io_read_value <= SW;
-      */
-      
-      if (io_write_en && io_address[2])   // bit 2 is set in the write address
-        LED <= io_write_value[15:0];
+        if (io_read_en)
+          case (io_address[1:0])
+            2'b01:  io_read_value <= {16'b0, SW};
+            2'b10:  io_read_value <= {27'b0, BTN};
+            default: io_read_value <= 32'b0;
+          endcase
         
-   end
-    
-endmodule
+        if (io_write_en && io_address[2])   // bit 2 is set in the write address
+          LED <= io_write_value[15:0];
+        //LED <= {io_write_value[7:0], pc[5:0], io_read_en, io_write_en};
+          
+     end
+ endmodule

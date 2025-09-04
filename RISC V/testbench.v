@@ -9,10 +9,11 @@
 `define make_half(v1, v2)           {v1, v2}
 
 `define memb(a)             uut.datapath.dm.memory[a]
+`define register(r)         uut.datapath.reg_file.reg_array[r]
+
 `define set_memb(a, v)      `memb(a) <= v
+`define set_memh(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v)
 `define set_memw(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v); `memb(a+2) <= `get_23_16(v); `memb(a+3) <= `get_31_24(v)
-
-
 
 `define set_reg(r, v)       uut.datapath.reg_file.reg_array[r] <= v
 `define set_pc(a)           uut.datapath.pc_current <= a
@@ -32,10 +33,12 @@
 `define show_pcnext         $display("\tpc_next: %8h", uut.datapath.pc_next)
 `define show_pc             $display("\tpc: %8h", uut.datapath.pc_current)
 
-`define check_pcnext(v, em, sm)  if (uut.datapath.pc_next != v) $error(em); else $display(sm)
-`define check_pc(v, em, sm)      if (uut.datapath.pc_current != v) $error(em); else $display(sm)
-`define check_reg(r, v, em, sm)  if (uut.datapath.reg_file.reg_array[r] != v) $error(em); else $display(sm)
-`define check_memb(a, v, em, sm) if (uut.datapath.dm.memory[a] != v) $error(em); else $display(sm)
+`define check_pcnext(v, em, sm)  if (uut.datapath.pc_next != v) $display(em); else $display(sm)
+`define check_pc(v, em, sm)      if (uut.datapath.pc_current != v) $display(em); else $display(sm)
+`define check_reg(r, v, em, sm)  if (uut.datapath.reg_file.reg_array[r] != v) $display(em); else $display(sm)
+`define check_memb(a, v, em, sm) if (uut.datapath.dm.memory[a] != v) $display(em); else $display(sm)
+`define check_memh(a, v, em, sm) if (`make_word(`memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
+`define check_memw(a, v, em, sm) if (`make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
 
 /*
 `define check_memw(a, v, em, sm) if (!(`memb(a)   == `get_7_0(v) && \
@@ -43,8 +46,14 @@
                                   `memb(a+2) == `get_23_16(v) && \
                                   `memb(a+3) == `get_31_24(v))) $error(em); else $display(sm)
 */
-`define check_memw(a, v, em, sm) if (`make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) != v) $error(em); else $display(sm)
 
+`define check_arith_reg(x1, x2, res, cmd, txt)  `set_pc(0); \
+                                                `set_instr(0, 32'b0000000_00010_00001_000_00011_0110011 | (cmd << 12)); \
+                                                `set_reg(1, x1);    \
+                                                `set_reg(2, x2);    \
+                                                `run_step;  \
+                                                `show_reg(3);   \
+                                                if (`register(3) != res) $display("%s %s", txt, "failed"); else $display("%s %s", txt, "success")
 
 module test_RISC32;
 
@@ -183,6 +192,13 @@ module test_RISC32;
        #10;
        $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `data_bytes);
        
+       `check_arith_reg(1, 5, 6, 3'b000, "add");   
+       `check_arith_reg(32'hffff_ffff, 5, 4, 3'b000, "add"); 
+       `check_arith_reg(3, 4, 7, 3'b110, "or");  
+       `check_arith_reg(32'h55, 32'h50, 32'h5, 3'b100, "xor");  
+       `check_arith_reg(32'h55, 32'h55, 32'h0, 3'b100, "xor");  
+       `check_arith_reg(32'h55, 32'h50, 32'h50, 3'b111, "and");  
+                     
        // Test lw x1, [0 + x2]       
        // Objective - show that a memory word load works
        //                lw rd, rs1(ext_imm)

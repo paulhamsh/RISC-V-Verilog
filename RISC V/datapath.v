@@ -221,6 +221,7 @@ module DatapathUnit(
  
 
   // Data memory 
+  
   DataMemory dm
   (
     .clk(clk),
@@ -231,6 +232,7 @@ module DatapathUnit(
     .mem_out(mem_read_value),
     .mem_data_size(mem_data_size)
   );
+  
  
   // IO 
   // io_address, io_read_en and io_write_en set above

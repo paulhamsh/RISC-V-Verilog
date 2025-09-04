@@ -22,12 +22,13 @@ module AddressDecoder(
     
   wire        is_mem;
 
-  assign io_address = {1'b0, data_address[30:0]};      // set bit 31 to 0
+  //assign io_address = {1'b0, data_address[30:0]};      // set bit 31 to 0
+  assign io_address  = data_address;
   assign mem_address = data_address;                   // bit 31 is already 0
     
   // Is this a memory or IO address?
-  assign is_mem = ~data_address[31];                   // bit 31 is 0
-  assign is_io =   data_address[31];                   // bit 31 is 1
+  assign is_mem = !data_address[31];                   // bit 31 is 0
+  assign is_io  =  data_address[31];                   // bit 31 is 1
     
   // Memory and IO enable read and write flags
   assign mem_read_en =  data_read_en  && is_mem; 
@@ -36,7 +37,7 @@ module AddressDecoder(
   assign io_write_en =  data_write_en && is_io;
   
   assign mem_write_value = data_write_value;
-  assign io_write_value  = data_write_value;
+  assign io_write_value  = data_write_value; //32'haaaa_aaaa;  //32'h5555_5555; //data_write_value;
   assign mem_data_size   = data_size;
   assign io_data_size    = data_size;
 endmodule
