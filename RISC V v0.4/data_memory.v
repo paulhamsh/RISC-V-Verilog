@@ -39,7 +39,7 @@ module DataMemory(
     
   initial
     begin
-      $readmemb("test_data.mem", memory);
+      $readmemb("test_data4.mem", memory);
     end
  
   always @(posedge clk) begin
