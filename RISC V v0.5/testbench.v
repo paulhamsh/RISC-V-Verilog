@@ -15,8 +15,8 @@ module test_RISC32;
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
 //`define PROG_BASIC 
-//`define PROG_STEPPED
-`define PROG_INDIV
+`define PROG_STEPPED
+//`define PROG_INDIV
 
 `ifdef PROG_BASIC
   initial 
@@ -40,8 +40,8 @@ module test_RISC32;
 
   always 
     begin
-      $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes, `data_bytes);
-      #5;
+      $display("RISC-V 32 bit -  instruction memory: %4d data memory %4d", `row_i, `row_d);
+      #10;
       $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       clk = 1;
       #5;
@@ -69,8 +69,8 @@ module test_RISC32;
       $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       clk = 1;
       #5;
-      $display("\tmem[4]:   %2h", uut.datapath.dm.memory[4]);
-      if (! (uut.datapath.dm.memory[4] == 8'h3 && uut.datapath.dm.memory[5] == 8'h0 && uut.datapath.dm.memory[6] == 8'h0 && uut.datapath.dm.memory[7] == 8'h0)) $error("ST failure");  
+      $display("\tmem[2]:   %8h", uut.datapath.dm.memory[1]);
+      if (uut.datapath.dm.memory[1] != 32'h0002) $error("ST failure");  
       
       clk = 0;
       #5;   
@@ -135,29 +135,13 @@ module test_RISC32;
       #5;
       $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
       if (uut.datapath.reg_file.reg_array[3] != 32'h0002) $error("ADD failure");  
- 
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h1000) $error("LUI failure");  
-      
-      clk = 0;
-      #5;   
-      $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
-      clk = 1;
-      #5;
-      $display("\tx3:   %8h", uut.datapath.reg_file.reg_array[3]);
-      if (uut.datapath.reg_file.reg_array[3] != 32'h0000_1034) $error("AUIPC failure");  
       
       clk = 0;
       #5;   
       $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       $display("\tbranch_control: %1b", uut.datapath.branch_control);
       $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h3c) $error("BEQ failure");  
+      if (uut.datapath.pc_next != 32'h34) $error("BEQ failure");  
       clk = 1;
       #5;
             
@@ -166,7 +150,7 @@ module test_RISC32;
       $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       $display("\tbranch_control: %1b", uut.datapath.branch_control);
       $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h44) $error("BNE failure");  
+      if (uut.datapath.pc_next != 32'h3c) $error("BNE failure");  
       clk = 1;
       #5;
             
@@ -175,11 +159,9 @@ module test_RISC32;
       $display("PC:  %8h  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
       $display("\tbranch_control: %1b", uut.datapath.branch_control);
       $display("\tpc_next: %8h", uut.datapath.pc_next);
-      if (uut.datapath.pc_next != 32'h10) $error("JMP failure - pc");    
+      if (uut.datapath.pc_next != 32'h10) $error("JMP failure");        
       clk = 1;
       #5;
-      $display("\tx1     : %8h", uut.datapath.reg_file.reg_array[1]);
-      if (uut.datapath.reg_file.reg_array[1] != 32'h0048) $error("JMP failure - x1");   
 
       #20;
       $finish;
@@ -193,20 +175,17 @@ module test_RISC32;
     
    always 
      begin
-       $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `data_bytes);
+       $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `row_i, `row_d);
        $display("--------------------------------------------------");
        
        // Test 1 - LD x1, [0 + x2]       
        clk = 0;
        #5;     
        uut.datapath.pc_current = 0;
-       //                               lw rd, rs1(ext_imm)
-       //                               +++imm++++++_+rs1+_010_++rd+_++op+++ 
-       uut.datapath.im.memory[0] <= 32'b000000000000_00010_010_00001_0000011; 
-       uut.datapath.dm.memory[4] <= 8'h7f;               // Mem[4] = 0000_7f7f
-       uut.datapath.dm.memory[5] <= 8'h7f;
-       uut.datapath.dm.memory[6] <= 8'h00;
-       uut.datapath.dm.memory[7] <= 8'h00;
+       //                               ld rd, rs1(ext_imm)
+       //                               +++imm++++++_+rs1+_xxx_++rd+_++op+++ 
+       uut.datapath.im.memory[0] <= 32'b000000000000_00010_000_00001_0000011; 
+       uut.datapath.dm.memory[1] <= 32'h0000_7f7f;               // Mem[1] = 7f7f
        uut.datapath.reg_file.reg_array[2] <= 32'h0004;           // R2 = 4
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
@@ -222,7 +201,7 @@ module test_RISC32;
        uut.datapath.pc_current = 0;
        //                               add rd, rs1, rs2
        //                               +func7+_+rs2+_+rs1+_fu3_++rd+_+++op++ 
-       uut.datapath.im.memory[0] <= 32'b0000000_00010_00001_000_00011_0110011; 
+       uut.datapath.im.memory[0] <= 32'b0000000_00010_00001_000_00011_0001011; 
        uut.datapath.reg_file.reg_array[1] <= 32'h0001;           // R1 = 0001
        uut.datapath.reg_file.reg_array[2] <= 32'h0fff;           // R2 = 0fff
        uut.datapath.reg_file.reg_array[3] <= 32'h2222;           // R3 = 2222
@@ -240,31 +219,25 @@ module test_RISC32;
        uut.datapath.pc_current = 0;
        //                               lui rd, imm
        //                               ++++++++++imm+++++++_++rd+_+++op++ 
-       uut.datapath.im.memory[0] <= 32'b01010101010101010101_00001_0110111; 
+       uut.datapath.im.memory[0] <= 32'b01010101010101010101_00001_0111011; 
        uut.datapath.reg_file.reg_array[1] <= 32'h0000_0000;           
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
        clk = 1;
        #5;
        $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
-       if (uut.datapath.reg_file.reg_array[1] != 32'h5555_5000) $error("LUI failure"); else $display("Success");
+       if (uut.datapath.reg_file.reg_array[1] != 32'h55555_5000) $error("LUI failure"); else $display("Success");
 
 
-       // Test 5 - memory wrap - ld x1, x2(0)   (128) should wrap to 0
+       // Test 5 - memory wrap - ld x1, x2(0)
        clk = 0;
        #5;
        uut.datapath.pc_current = 0;
        //                                ld rd, rs1(ext_imm)
        //                                +++imm++++++_+rs1+_xxx_++rd+_++op+++  
-       uut.datapath.im.memory[0]   <= 32'b000000000000_00010_000_00001_0000011; 
-       uut.datapath.dm.memory[0]   <= 8'h7f;                        // Mem[0]   = f7f7_7f7f  - byte address 0
-       uut.datapath.dm.memory[1]   <= 8'h7f;
-       uut.datapath.dm.memory[2]   <= 8'hf7;
-       uut.datapath.dm.memory[3]   <= 8'hf7;
-       uut.datapath.dm.memory[124] <= 8'h88;                        // Mem[124] = 8888_8888  - byte address 124
-       uut.datapath.dm.memory[125] <= 8'h88; 
-       uut.datapath.dm.memory[126] <= 8'h88;
-       uut.datapath.dm.memory[127] <= 8'h88;                
+       uut.datapath.im.memory[0]  <= 32'b000000000000_00010_000_00001_0000011; 
+       uut.datapath.dm.memory[0]  <= 32'hf7f7_7f7f;               // Mem[0]   = f7f7_7f7f  - byte address 0
+       uut.datapath.dm.memory[31] <= 32'h8888_8888;               // Mem[124] = 8888_8888  - byte address 124, even though index 31
        uut.datapath.reg_file.reg_array[2] <= 32'd128;             // x2 = 128 (should wrap to 0)
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
@@ -273,21 +246,15 @@ module test_RISC32;
        $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
        if (uut.datapath.reg_file.reg_array[1] != 32'hf7f7_7f7f) $error("LD failure"); else $display("Success");
 
-       // Test 6 - memory wrap - ld x1, x2(0)    (124)
+       // Test 6 - memory wrap - ld x1, x2(0)
        clk = 0;
        #5;
        uut.datapath.pc_current = 0;
        //                                ld rd, rs1(ext_imm)
-       //                                +++imm++++++_+rs1+_010_++rd+_++op+++  
-       uut.datapath.im.memory[0]  <= 32'b000000000000_00010_010_00001_0000011; 
-       uut.datapath.dm.memory[0]   <= 8'h7f;                        // Mem[0]   = f7f7_7f7f  - byte address 0
-       uut.datapath.dm.memory[1]   <= 8'h7f;
-       uut.datapath.dm.memory[2]   <= 8'h7f;
-       uut.datapath.dm.memory[3]   <= 8'h7f;
-       uut.datapath.dm.memory[124] <= 8'h88;                        // Mem[124] = 8888_8888  - byte address 124
-       uut.datapath.dm.memory[125] <= 8'h88; 
-       uut.datapath.dm.memory[126] <= 8'h88;
-       uut.datapath.dm.memory[127] <= 8'h88; 
+       //                                +++imm++++++_+rs1+_xxx_++rd+_++op+++  
+       uut.datapath.im.memory[0]  <= 32'b000000000000_00010_000_00001_0000011; 
+       uut.datapath.dm.memory[0]  <= 32'hf7f7_7f7f;               // Mem[4]   = f7f7_7f7f  - byte address 4, even though index 1
+       uut.datapath.dm.memory[31] <= 32'h8888_8888;               // Mem[124] = 8888_8888  - byte address 124, even though index 31
        uut.datapath.reg_file.reg_array[2] <= 32'd124;             // x2 = 124 
        #10;
        $display("PC:  %3d  Instruction: %32b   Opcode: %7b", uut.datapath.pc_current, uut.datapath.instr, uut.datapath.opcode );
@@ -295,6 +262,7 @@ module test_RISC32;
        #5;
        $display("\tx1:   %08h", uut.datapath.reg_file.reg_array[1]);
        if (uut.datapath.reg_file.reg_array[1] != 32'h8888_8888) $error("LD failure"); else $display("Success");
+
 
        #20;
        $finish;

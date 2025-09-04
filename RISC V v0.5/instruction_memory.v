@@ -9,9 +9,8 @@
 // to make it wrap at 128 bytes, only use the lower [`size_inst + 1 : 2] bits - so in this case, [33 : 2] 
 
 
-`define instr_addr_bits         5
-`define row_i                  (1 << `instr_addr_bits)
-`define instr_bytes            (`row_i * 4)
+`define size_inst 5
+`define row_i (1 << `size_inst)
 
 module InstructionMemory(
   input  [31:0] pc,
@@ -24,11 +23,11 @@ module InstructionMemory(
   // memory access will wrap at the limit of the number of words, and is word aligned so we ignore the lower two bits
   
   //wire [31:0] rom_addr = pc[`size_inst - 1 : 0];
-  wire [`instr_addr_bits - 1 : 0] rom_addr = pc[`instr_addr_bits + 1 : 2];
+  wire [`size_inst - 1 : 0] rom_addr = pc[`size_inst + 1 : 2];
   
   initial
     begin
-      $readmemb("test_risc_prog.mem", memory);
+      $readmemb("test_prog4.mem", memory);
     end
   
   assign instruction = memory[rom_addr]; 

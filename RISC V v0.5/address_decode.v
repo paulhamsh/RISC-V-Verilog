@@ -1,21 +1,20 @@
+`timescale 1ns / 1ps
+
 module AddressDecoder(
   input  [31:0] data_address,
   input         data_read_en,
   input         data_write_en,
   input  [31:0] data_write_value,
-  input  [2:0]  data_size,
   
   output [31:0] mem_address,
   output        mem_read_en,
   output        mem_write_en,
   output [31:0] mem_write_value,
-  output [2:0]  mem_data_size,
   
   output [31:0] io_address,
   output        io_read_en,
   output        io_write_en,
   output [31:0] io_write_value,
-  output [2:0]  io_data_size,
   
   output        is_io
   );
@@ -36,7 +35,5 @@ module AddressDecoder(
   assign io_write_en =  data_write_en && is_io;
   
   assign mem_write_value = data_write_value;
-  assign io_write_value  = data_write_value;
-  assign mem_data_size   = data_size;
-  assign io_data_size    = data_size;
+  assign io_write_value =  data_write_value;
 endmodule
