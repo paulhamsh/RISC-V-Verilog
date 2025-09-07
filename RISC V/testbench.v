@@ -8,12 +8,21 @@
 `define make_word(v1, v2, v3,v4)    {v1, v2, v3, v4}
 `define make_half(v1, v2)           {v1, v2}
 
-`define memb(a)             uut.datapath.dm.memory[a]
+`define memA(a)             uut.datapath.dm.memA[a>>2]
+`define memB(a)             uut.datapath.dm.memB[a>>2]
+`define memC(a)             uut.datapath.dm.memC[a>>2]
+`define memD(a)             uut.datapath.dm.memD[a>>2]
+
+//`define memb(a)             uut.datapath.dm.memory[a]
 `define register(r)         uut.datapath.reg_file.reg_array[r]
 
-`define set_memb(a, v)      `memb(a) <= v
-`define set_memh(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v)
-`define set_memw(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v); `memb(a+2) <= `get_23_16(v); `memb(a+3) <= `get_31_24(v)
+//`define set_memb(a, v)      `memb(a) <= v
+//`define set_memh(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v)
+//`define set_memw(a, v)      `memb(a) <= `get_7_0(v); `memb(a+1) <= `get_15_8(v); `memb(a+2) <= `get_23_16(v); `memb(a+3) <= `get_31_24(v)
+
+`define set_memw(a, v)      `memD(a) <= `get_7_0(v); `memC(a) <= `get_15_8(v); `memB(a) <= `get_23_16(v); `memA(a) <= `get_31_24(v)
+//`define set_memw(a, v)      uut.datapath.dm.memory[a>>2] <= v
+
 
 `define set_reg(r, v)       uut.datapath.reg_file.reg_array[r] <= v
 `define set_pc(a)           uut.datapath.pc_current <= a
@@ -27,25 +36,25 @@
 `define run_step            `clock_down; `show_state; `clock_up
 
 `define show_reg(r)         $display("\tx%1d:   %8h", r, uut.datapath.reg_file.reg_array[r])
-`define show_memb(a)        $display("\tmemb[%1d]:   %2h", a,  `memb(a))
-`define show_memh(a)        $display("\tmemh{%1d]:   %4h", a, `make_half(`memb(a+1), `memb(a)) )
-`define show_memw(a)        $display("\tmemw{%1d]:   %8h", a, `make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) ) 
+//`define show_memb(a)        $display("\tmemb[%1d]:   %2h", a,  `memb(a))
+//`define show_memh(a)        $display("\tmemh{%1d]:   %4h", a, `make_half(`memb(a+1), `memb(a)) )
+//`define show_memw(a)        $display("\tmemw{%1d]:   %8h", a, `make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) ) 
+
+`define show_memw(a)        $display("\tmemw{%1d]:   %8h", a, `make_word(`memA(a), `memB(a), `memC(a), `memD(a)) ) 
+
 `define show_pcnext         $display("\tpc_next: %8h", uut.datapath.pc_next)
 `define show_pc             $display("\tpc: %8h", uut.datapath.pc_current)
 
 `define check_pcnext(v, em, sm)  if (uut.datapath.pc_next != v) $display(em); else $display(sm)
 `define check_pc(v, em, sm)      if (uut.datapath.pc_current != v) $display(em); else $display(sm)
 `define check_reg(r, v, em, sm)  if (uut.datapath.reg_file.reg_array[r] != v) $display(em); else $display(sm)
-`define check_memb(a, v, em, sm) if (uut.datapath.dm.memory[a] != v) $display(em); else $display(sm)
-`define check_memh(a, v, em, sm) if (`make_word(`memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
-`define check_memw(a, v, em, sm) if (`make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
 
-/*
-`define check_memw(a, v, em, sm) if (!(`memb(a)   == `get_7_0(v) && \
-                                  `memb(a+1) == `get_15_8(v) && \
-                                  `memb(a+2) == `get_23_16(v) && \
-                                  `memb(a+3) == `get_31_24(v))) $error(em); else $display(sm)
-*/
+//`define check_memb(a, v, em, sm) if (uut.datapath.dm.memory[a] != v) $display(em); else $display(sm)
+//`define check_memh(a, v, em, sm) if (`make_word(`memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
+//`define check_memw(a, v, em, sm) if (`make_word(`memb(a+3), `memb(a+2), `memb(a+1), `memb(a)) != v) $display(em); else $display(sm)
+//`define check_memw(a, v, em, sm) if (uut.datapath.dm.memory[a>>2] != v) $display(em); else $display(sm)
+
+`define check_memw(a, v, em, sm) if (`make_word(`memA(a), `memB(a), `memC(a), `memD(a)) != v) $display(em); else $display(sm)
 
 `define check_arith_reg(x1, x2, res, cmd, txt)  `set_pc(0); \
                                                 `set_instr(0, 32'b0000000_00010_00001_000_00011_0110011 | (cmd << 12)); \
@@ -70,8 +79,8 @@ module test_RISC32;
 // PROG_INDIV will run specific commands and is not dependent on data memory or instruction memory being initialised
 
 //`define PROG_BASIC 
-//`define PROG_STEPPED
-`define PROG_INDIV
+`define PROG_STEPPED
+//`define PROG_INDIV
 
 `ifdef PROG_BASIC
   initial 
@@ -96,7 +105,7 @@ module test_RISC32;
   always 
     begin
       #10;
-      $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes, `data_bytes);
+      $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes, `total_data_bytes);
       
       `run_step;
       `show_reg(3);
@@ -190,7 +199,7 @@ module test_RISC32;
    always 
      begin
        #10;
-       $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `data_bytes);
+       $display("RISC-V 32 bit - instruction memory: %4d data memory: %4d", `instr_bytes,  `total_data_bytes);
        
        `check_arith_reg(1, 5, 6, 3'b000, "add");   
        `check_arith_reg(32'hffff_ffff, 5, 4, 3'b000, "add"); 

@@ -23,20 +23,22 @@ module top(
     .io_read_en(io_read_en),
     .io_data_size(io_data_size)
     );
- 
+  
+   // I think it has inferred a latch for io_read_value!!
+   
+   always @(*)
+     begin
+       if (io_read_en)
+         case (io_address[1:0])
+           2'b01:   io_read_value <= {16'b0, SW};
+           2'b10:   io_read_value <= {27'b0, BTN};
+           default: io_read_value <= 32'b0;
+         endcase   
+     end
+     
    always @(posedge CLK100MHZ)
       begin
-  
-        if (io_read_en)
-          case (io_address[1:0])
-            2'b01:  io_read_value <= {16'b0, SW};
-            2'b10:  io_read_value <= {27'b0, BTN};
-            default: io_read_value <= 32'b0;
-          endcase
-        
         if (io_write_en && io_address[2])   // bit 2 is set in the write address
           LED <= io_write_value[15:0];
-        //LED <= {io_write_value[7:0], pc[5:0], io_read_en, io_write_en};
-          
      end
  endmodule
