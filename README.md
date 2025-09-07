@@ -25,11 +25,11 @@ My implementation of RISC V ISA in Verilog
 </p>
 
 <p align="center">
-  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/immediate-types.jpg" width="300">
+  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/immediate-types.jpg" width="200">
 </p>
 
 <p align="center">
-  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/immediate-encoding.jpg" width="800">
+  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/immediate-encoding.jpg" width="600">
 </p>
 
 
