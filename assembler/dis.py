@@ -207,12 +207,12 @@ def disassemble(code):
                 # store
                 store_cmds = ["sb", "sh", "sw"]
                 assembly = store_cmds[func3] + "\t"
-                assembly += f"x{rd:d}, {signed_imm_S:d}(x{rs1:d})" 
+                assembly += f"x{rs2:d}, {signed_imm_S:d}(x{rs1:d})" 
             elif opcode == 0b11000_11:
                 # branch
                 branch_cmds = ["beq", "bne", "", "", "blt", "bge", "bltu", "bgeu"]
                 assembly = branch_cmds[func3] + "\t"
-                assembly += f"x{rd:d}, x{rs1:d}, {signed_imm_B:d}" 
+                assembly += f"x{rs1:d}, x{rs2:d}, {signed_imm_B:d}" 
             elif opcode == 0b11001_11:
                 # jalr
                 assembly = "jalr" + "\t"
@@ -220,8 +220,7 @@ def disassemble(code):
             elif opcode == 0b11011_11:
                 # jal
                 assembly = "jal" + "\t"
-                shift_imm = signed_imm_J 
-                assembly += f"x{rd:d}, {shift_imm:d}"
+                assembly += f"x{rd:d}, {signed_imm_J:d}"
                 
             elif opcode == 0b01101_11:
                 # lui
