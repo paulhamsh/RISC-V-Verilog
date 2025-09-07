@@ -8,7 +8,7 @@ My implementation of RISC V ISA in Verilog
 **Control unit signals**  
 
 <p align="center">
-  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/control-unit.jpg" width="800">
+  <img src="https://github.com/paulhamsh/RISC-V-Verilog/blob/main/images/control-unit.jpg" width="1000">
 </p>
 
 
