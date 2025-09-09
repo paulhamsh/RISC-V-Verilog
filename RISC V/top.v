@@ -28,12 +28,12 @@ module top(
    
    always @(*)
      begin
-       if (io_read_en)
-         case (io_address[1:0])
-           2'b01:   io_read_value <= {16'b0, SW};
-           2'b10:   io_read_value <= {27'b0, BTN};
-           default: io_read_value <= 32'b0;
-         endcase   
+       // Note - we don't need to check io_read_en because we have a mux between io_read_value and mem_read_value, not a bus
+       case (io_address[1:0])
+         2'b01:   io_read_value <= {16'b0, SW};
+         2'b10:   io_read_value <= {27'b0, BTN};
+         default: io_read_value <= 32'b0;
+       endcase  
      end
      
    always @(posedge CLK100MHZ)

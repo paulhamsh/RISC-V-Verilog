@@ -22,7 +22,6 @@ module AddressDecoder(
     
   wire        is_mem;
 
-  //assign io_address = {1'b0, data_address[30:0]};      // set bit 31 to 0
   assign io_address  = data_address;
   assign mem_address = data_address;                   // bit 31 is already 0
     
@@ -37,7 +36,7 @@ module AddressDecoder(
   assign io_write_en =  data_write_en && is_io;
   
   assign mem_write_value = data_write_value;
-  assign io_write_value  = data_write_value; //32'haaaa_aaaa;  //32'h5555_5555; //data_write_value;
+  assign io_write_value  = data_write_value; 
   assign mem_data_size   = data_size;
   assign io_data_size    = data_size;
 endmodule
