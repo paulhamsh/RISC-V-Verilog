@@ -29,8 +29,9 @@ module ControlUnit(
         reg_write_en   = 1'b1;    // write to rd
         data_read_en   = 1'b0;    // no read from memory 
         data_write_en  = 1'b0;    // no write to memory
-        branch_cond    = 3'b010;  // no branch
-        alu_op         = {funct3 == 3'b101 ? funct7[5] : 0, funct3};   // alu_op has been encoded to match this
+        branch_cond    = 3'b010;  // no branch  
+        // alu_op has been encoded to match this
+        alu_op         = {funct3 == 3'b101 ? funct7[5] : 0, funct3}; 
         data_size      = 3'b000;
       end
     7'b011_0011:   // arithmetic with registers
@@ -45,7 +46,8 @@ module ControlUnit(
         data_read_en   = 1'b0;    // no read from memory 
         data_write_en  = 1'b0;    // no write to memory
         branch_cond    = 3'b010;  // no branch
-        alu_op         = {funct7[5], funct3};   // alu_op has been encoded to match this
+        // alu_op has been encoded to match this
+        alu_op         = {funct7[5], funct3};
         data_size      = 3'b000;      
       end   
     7'b110_0111:   // jalr          

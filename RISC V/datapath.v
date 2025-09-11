@@ -66,10 +66,13 @@ module DatapathUnit(
   end
  
   // Update to pc_next on rising clock
-  // Note - the last bit it set to 0 just in case JALR had set it (the only case where it could be non-zero)
+  // Note - the last bit it set to 0 just in case JALR had set it
+  // (the only case where it could be non-zero)
+  
   always @(posedge clk)
   begin 
-    pc_current <= {pc_next[31:1], 1'b0};     // last bit set to 0(for JALR)
+    // last bit set to 0(for JALR)
+    pc_current <= {pc_next[31:1], 1'b0};     
   end
 
   assign pc_plus_4 = pc_current + 32'd4;  
@@ -136,12 +139,19 @@ module DatapathUnit(
   
   always @(*)
     case (imm_type)
-       3'd1:    ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // I type (load)
-       3'd2:    ext_imm = { {21{instr[31]}}, instr[30:25], instr[11:8],  instr[7]  };          // S type (store)
-       3'd3:    ext_imm = { {20{instr[31]}}, instr[7],     instr[30:25], instr[11:8],  1'b0};  // B type - effectively making ext_imm the full offset to branch
-       3'd4:    ext_imm = { {12{instr[31]}}, instr[19:12], instr[20],    instr[30:21], 1'b0};  // J type - effectively making ext_imm the full offset to branch 
-       3'd5:    ext_imm = {     instr[31],   instr[30:20], instr[19:12], 12'b0 };              // U type 
-       default: ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };          // includes R type, does not matter what it is 
+       // I type (load)
+       3'd1:  ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };
+       // S type (store)
+       3'd2:  ext_imm = { {21{instr[31]}}, instr[30:25], instr[11:8], instr[7] };
+       // B type - effectively making ext_imm the full offset to branch
+       3'd3:  ext_imm = { {20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0};
+       // J type - effectively making ext_imm the full offset to branch   
+       3'd4:  ext_imm = { {12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
+       // U type 
+       3'd5:  ext_imm = {     instr[31], instr[30:20], instr[19:12], 12'b0 }; 
+       // includes R type, does not matter what it is 
+       default: 
+              ext_imm = { {21{instr[31]}}, instr[30:25], instr[24:21], instr[20] };
     endcase
        
 
@@ -163,6 +173,7 @@ module DatapathUnit(
     );
    
   // set up the ALU with rs1 and alu_in as inputs - exposes zero flag for branching
+  
   ALU alu_unit (
     .a(alu_a_in), 
     .b(alu_b_in), 
@@ -176,11 +187,15 @@ module DatapathUnit(
   
   // BRANCH_MUX
   // The PC increments by 4
-  // If a branch is needed, branch_control is true, and the destination is set a PC + ext_imm
+  // If a branch is needed, branch_control is true, and the destination is 
+  // set to PC + ext_imm
   // If a jump is needed, the jump destination is calculated
-  // Then pc_next set to the correct value - PC + 4, branch destination or jump destination
+  // Then pc_next set to the correct value:
+  // PC + 4, branch destination or jump destination
   
-  // Branch comparator - do the comparsion based on branch_cond and set branch_control to 1 if a branch is needed
+  // Branch comparator - do the comparsion based on branch_cond and 
+  // set branch_control to 1 if a branch is needed
+  
   BranchComp br_comp (
     .a(rs1_value),
     .b(rs2_value),
