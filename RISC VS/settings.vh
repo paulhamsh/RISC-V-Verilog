@@ -14,7 +14,12 @@
 // Memory can be either 4 banks each of width one byte, or one array of 32 bit words
 // BANKED_MEM selects the 4 banks 
 
-`define BANKED_MEM
+`define FULL_MEM
+//`define ALIGNED_MEM
+//`define BASIC_MEM
+
+
+`define SYNCHRONOUS_MEM
 
 // Select the size (in bytes) of data memory and instruction memory
 `define data_bytes       128

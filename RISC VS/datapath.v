@@ -55,7 +55,7 @@ module DatapathUnit(
   // Note that io_read_value is part of the interface
   // Note that io_write_value is part of the interface
   // Note that io_read_en is part of the interface
-  // Note that  io_write_en are part of the interface
+  // Note that io_write_en are part of the interface
   
   reg         bus_busy;
   reg  [2:0]  bus_counter;
@@ -65,8 +65,10 @@ module DatapathUnit(
      
   initial begin
     pc_current <= 32'd0;
+    `ifdef SYNCHRONOUS_MEM
     bus_counter <= 0;
     bus_busy <= 0;
+    `endif
   end
  
   // Update to pc_next on rising clock
@@ -76,7 +78,9 @@ module DatapathUnit(
   always @(posedge clk)
   begin 
     // last bit set to 0(for JALR)
+    `ifdef SYNCHRONOUS_MEM   
     if (!bus_busy)
+    `endif
       pc_current <= {pc_next[31:1], 1'b0}; 
   end
 
@@ -239,13 +243,14 @@ module DatapathUnit(
     .is_io(is_io)
    );
  
+  `ifdef SYNCHRONOUS_MEM
+  
   always @(*) begin
     if ((data_read_en | data_write_en) && (bus_counter < 1)) 
       bus_busy <= 1;
     else
       bus_busy <= 0;
   end
-  
   
   always @(posedge clk) begin
     if (bus_busy) 
@@ -254,6 +259,9 @@ module DatapathUnit(
       bus_counter <= 0;
   end
   
+  `endif
+    
+  
   // Data memory 
   
   DataMemory dm
@@ -261,8 +269,13 @@ module DatapathUnit(
     .clk(clk),
     .mem_access_addr(mem_address),
     .mem_in(mem_write_value),
-    .mem_write_en(mem_write_en & !bus_busy),
-    .mem_read_en(mem_read_en  & !bus_busy),
+    `ifdef SYNCHRONOUS_MEM  
+    .mem_write_en(mem_write_en & bus_busy),
+    .mem_read_en(mem_read_en & bus_busy),
+    `else
+    .mem_write_en(mem_write_en),
+    .mem_read_en(mem_read_en),
+    `endif
     .mem_out(mem_read_value),
     .mem_data_size(mem_data_size)
   );

@@ -30,9 +30,10 @@
 `define memW(a)             uut.datapath.dm.mem[a>>2]
 `define set_memw(a, v)      `memW(a) <= v
 `define show_memw(a)        $display("\tmemw{%1d]:   %8h", a, `memW(a)) 
-`define check_memw(a, v, em, sm) if (`memW(a) != v) \ 
+`define check_memw(a, v, em, sm) if (`memW(a) != v) \
                             begin $display(em); fails = fails + 1; end \
                             else $display(sm)
+
 
 `endif
 
